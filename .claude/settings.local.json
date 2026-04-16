@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(timeout 30 node_modules/.bin/tsc --noEmit --skipLibCheck)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(echo \"Dev server started with PID $!\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/analyze)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/explore)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/existing)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:3001/report/test-id-123\")"
+    ]
+  }
+}
