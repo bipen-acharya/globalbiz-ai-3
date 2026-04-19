@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Globe,
   Key,
   CheckCircle2,
   AlertCircle,
@@ -144,7 +143,7 @@ export default function SetupPage() {
       {/* Logo */}
       <Link href="/" className="mb-8 flex items-center gap-2">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-md">
-          <Globe className="h-5 w-5 text-white" />
+          <span className="text-[13px] font-black tracking-tight text-white">VG</span>
         </div>
         <span className="text-xl font-bold text-slate-900">VisaGuide</span>
       </Link>

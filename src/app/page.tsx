@@ -64,7 +64,7 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-sm">
-              <Globe className="h-4 w-4 text-white" />
+              <span className="text-[11px] font-black tracking-tight text-white">VG</span>
             </div>
             <span className="text-lg font-bold text-slate-900">VisaGuide</span>
             <Badge variant="info" className="text-[10px]">AU</Badge>

@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
-  Globe,
   ArrowLeft,
   Search,
   Info,
@@ -83,7 +82,7 @@ export default function OccupationsPage() {
             <div className="h-5 w-px bg-slate-200" />
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600">
-                <Globe className="h-3.5 w-3.5 text-white" />
+                <span className="text-[10px] font-black tracking-tight text-white">VG</span>
               </div>
               <span className="font-bold text-slate-900">Occupation List for PR</span>
             </div>

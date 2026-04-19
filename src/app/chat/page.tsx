@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Send,
-  Globe,
   ArrowLeft,
   Bot,
   User,
@@ -526,7 +525,7 @@ export default function ChatPage() {
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600">
-                <Globe className="h-3.5 w-3.5 text-white" />
+                <span className="text-[10px] font-black tracking-tight text-white">VG</span>
               </div>
               <span className="font-bold text-slate-900">VisaGuide</span>
             </div>
