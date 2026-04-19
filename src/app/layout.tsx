@@ -1,13 +1,12 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { NotificationsProvider } from '@/components/ui/notifications'
 
 export const metadata: Metadata = {
-  title: 'GlobalBiz AI — Business Feasibility Intelligence',
-  description: 'Find out if your business idea will work in your country, city, and community before you invest a single dollar.',
+  title: 'VisaPath — Australian Visa Guidance',
+  description: 'AI-powered Australian visa guidance. Get instant answers about 482, 189, 190, 485, partner visas and more.',
   openGraph: {
-    title: 'GlobalBiz AI',
-    description: 'AI-powered business feasibility reports for every country.',
+    title: 'VisaPath — Australian Visa Guidance',
+    description: 'Chat with an AI expert about Australian visa subclasses, eligibility, costs, and pathways to permanent residence.',
     type: 'website',
   },
 }
@@ -18,10 +17,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {/* Google Fonts loaded via globals.css @import */}
       </head>
       <body className="min-h-screen antialiased">
-        <NotificationsProvider>{children}</NotificationsProvider>
+        {children}
       </body>
     </html>
   )
