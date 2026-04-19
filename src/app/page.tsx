@@ -66,7 +66,7 @@ export default function HomePage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-sm">
               <Globe className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold text-slate-900">VisaGuide AU</span>
+            <span className="text-lg font-bold text-slate-900">VisaGuide</span>
             <Badge variant="info" className="text-[10px]">AU</Badge>
           </div>
           <div className="flex items-center gap-2">
@@ -320,7 +320,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-8 text-center text-sm text-slate-400">
         <p>
-          VisaGuide AU is for informational purposes only and does not constitute legal advice.
+          VisaGuide is for informational purposes only and does not constitute legal advice.
           Always consult a registered migration agent (MARA) for your specific circumstances.
         </p>
         <p className="mt-2">

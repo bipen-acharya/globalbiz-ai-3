@@ -528,7 +528,7 @@ export default function ChatPage() {
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600">
                 <Globe className="h-3.5 w-3.5 text-white" />
               </div>
-              <span className="font-bold text-slate-900">VisaGuide AU</span>
+              <span className="font-bold text-slate-900">VisaGuide</span>
             </div>
             <Link href="/">
               <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500">
@@ -626,7 +626,7 @@ export default function ChatPage() {
             </div>
             <div>
               <h1 className="text-sm font-semibold text-slate-900">
-                VisaGuide AU — AI Advisor
+                VisaGuide — AI Advisor
               </h1>
               <p className="text-xs text-slate-400">
                 Australian visa guidance · {activeProvider}
@@ -729,7 +729,7 @@ export default function ChatPage() {
             </Button>
           </form>
           <p className="mt-2 text-center text-[11px] text-slate-400">
-            VisaGuide AU provides general information only · Not legal advice ·
+            VisaGuide provides general information only · Not legal advice ·
             Powered by {activeProvider}
           </p>
         </div>

@@ -76,7 +76,7 @@ export function createChatStream(
         }
         send(controller, { done: true });
       } catch (err: unknown) {
-        console.error(`[VisaGuide AU ${config.provider} error]`, err);
+        console.error(`[VisaGuide ${config.provider} error]`, err);
         send(controller, { error: friendlyError(err, config.provider) });
       } finally {
         controller.close();

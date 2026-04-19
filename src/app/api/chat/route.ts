@@ -1,7 +1,7 @@
 import { buildVisaContext } from "@/lib/visa-data";
 import { detectProvider, createChatStream } from "@/lib/ai-provider";
 
-const SYSTEM_PROMPT = `You are VisaGuide AU, an expert Australian immigration advisor with deep knowledge of the Australian visa system. You help people understand visa options, requirements, and pathways clearly and accurately.
+const SYSTEM_PROMPT = `You are VisaGuide, an expert Australian immigration advisor with deep knowledge of the Australian visa system. You help people understand visa options, requirements, and pathways clearly and accurately.
 
 ## Your Role
 - Provide clear, accurate, and helpful guidance on Australian visa subclasses
