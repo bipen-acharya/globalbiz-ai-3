@@ -165,8 +165,8 @@ export default function HomePage() {
             {[
               { icon: <Award className="h-5 w-5 text-blue-600" />, value: `${visaSubclasses.length}`, label: 'Visa Subclasses' },
               { icon: <Briefcase className="h-5 w-5 text-indigo-600" />, value: '80+', label: 'PR Occupations' },
-              { icon: <MapPin className="h-5 w-5 text-teal-600" />, value: '3', label: 'Regional Visas' },
-              { icon: <Calculator className="h-5 w-5 text-purple-600" />, value: '2025', label: 'Updated Fees' },
+              { icon: <TrendingUp className="h-5 w-5 text-rose-600" />, value: '185k+', label: 'PR Grants 2024–25' },
+              { icon: <Users className="h-5 w-5 text-teal-600" />, value: '5 yrs', label: 'Migration Data' },
             ].map((stat) => (
               <div key={stat.label} className="flex flex-col items-center gap-2 text-center">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50">
