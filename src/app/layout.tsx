@@ -2,10 +2,10 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'VisaPath — Australian Visa Guidance',
+  title: 'VisaGuide AU — Australian Visa Guidance',
   description: 'AI-powered Australian visa guidance. Get instant answers about 482, 189, 190, 485, partner visas and more.',
   openGraph: {
-    title: 'VisaPath — Australian Visa Guidance',
+    title: 'VisaGuide AU — Australian Visa Guidance',
     description: 'Chat with an AI expert about Australian visa subclasses, eligibility, costs, and pathways to permanent residence.',
     type: 'website',
   },

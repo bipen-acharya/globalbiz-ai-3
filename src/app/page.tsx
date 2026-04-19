@@ -13,7 +13,6 @@ import {
   Heart,
   Plane,
   Building2,
-  Key,
   Calculator,
   List,
   MapPin,
@@ -67,7 +66,7 @@ export default function HomePage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-sm">
               <Globe className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold text-slate-900">VisaPath</span>
+            <span className="text-lg font-bold text-slate-900">VisaGuide AU</span>
             <Badge variant="info" className="text-[10px]">AU</Badge>
           </div>
           <div className="flex items-center gap-2">
@@ -87,12 +86,6 @@ export default function HomePage() {
               <Button variant="outline" size="sm" className="gap-1.5 text-slate-600">
                 <Calculator className="h-3.5 w-3.5" />
                 PR Calculator
-              </Button>
-            </Link>
-            <Link href="/setup">
-              <Button variant="ghost" size="sm" className="gap-1.5 text-slate-500">
-                <Key className="h-3.5 w-3.5" />
-                <span className="hidden md:inline">Setup</span>
               </Button>
             </Link>
             <Link href="/chat">
@@ -327,7 +320,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-8 text-center text-sm text-slate-400">
         <p>
-          VisaPath is for informational purposes only and does not constitute legal advice.
+          VisaGuide AU is for informational purposes only and does not constitute legal advice.
           Always consult a registered migration agent (MARA) for your specific circumstances.
         </p>
         <p className="mt-2">

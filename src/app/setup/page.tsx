@@ -146,7 +146,7 @@ export default function SetupPage() {
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-md">
           <Globe className="h-5 w-5 text-white" />
         </div>
-        <span className="text-xl font-bold text-slate-900">VisaPath</span>
+        <span className="text-xl font-bold text-slate-900">VisaGuide AU</span>
       </Link>
 
       <div className="w-full max-w-lg">
@@ -366,7 +366,7 @@ export default function SetupPage() {
                         ) : (
                           <Star className="h-4 w-4" />
                         )}
-                        Activate VisaPath with {provider.name}
+                        Activate VisaGuide AU with {provider.name}
                         <ArrowRight className="h-4 w-4" />
                       </>
                     )}
