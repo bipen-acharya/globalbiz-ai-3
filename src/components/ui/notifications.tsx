@@ -34,13 +34,26 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         {notices.map(notice => (
           <div
             key={notice.id}
-            className={`rounded-2xl border px-4 py-3 shadow-lg backdrop-blur-sm transition-all ${
-              notice.type === 'error'
-                ? 'border-red-200 bg-red-50 text-red-700'
+            className="rounded-2xl px-4 py-3 shadow-lg fade-up"
+            style={{
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              border: notice.type === 'error'
+                ? '1px solid rgba(248,113,113,0.35)'
                 : notice.type === 'success'
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                : 'border-slate-200 bg-white text-slate-700'
-            }`}
+                ? '1px solid rgba(0,255,136,0.35)'
+                : '1px solid rgba(255,255,255,0.12)',
+              background: notice.type === 'error'
+                ? 'rgba(220,38,38,0.15)'
+                : notice.type === 'success'
+                ? 'rgba(0,255,136,0.1)'
+                : 'rgba(255,255,255,0.07)',
+              color: notice.type === 'error'
+                ? 'rgba(252,165,165,0.95)'
+                : notice.type === 'success'
+                ? '#00FF88'
+                : 'rgba(240,244,255,0.85)',
+            }}
           >
             <div className="text-sm font-medium">{notice.message}</div>
           </div>

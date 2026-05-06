@@ -132,6 +132,9 @@ export interface BusinessFormData {
   delivery_order_percentage: number
   walk_in_percentage: number
   customer_lifetime_estimate: string
+  competitor_url_1: string
+  competitor_url_2: string
+  competitor_url_3: string
 }
 
 export interface NearbyPlace {

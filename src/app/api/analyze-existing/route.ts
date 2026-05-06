@@ -180,6 +180,9 @@ function mapToScoringForm(form: ExistingBusinessFormData, lat: number | null, ln
     delivery_order_percentage:    0,
     walk_in_percentage:           80,
     customer_lifetime_estimate:   '',
+    competitor_url_1:             '',
+    competitor_url_2:             '',
+    competitor_url_3:             '',
   }
 }
 

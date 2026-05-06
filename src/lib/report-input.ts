@@ -109,5 +109,8 @@ export function normalizeReportInput(data: Partial<BusinessFormData>): BusinessF
     delivery_order_percentage: typeof data.delivery_order_percentage === 'number' ? data.delivery_order_percentage : 0,
     walk_in_percentage: typeof data.walk_in_percentage === 'number' ? data.walk_in_percentage : 0,
     customer_lifetime_estimate: data.customer_lifetime_estimate ?? '',
+    competitor_url_1: data.competitor_url_1 ?? '',
+    competitor_url_2: data.competitor_url_2 ?? '',
+    competitor_url_3: data.competitor_url_3 ?? '',
   }
 }

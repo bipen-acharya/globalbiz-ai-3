@@ -22,26 +22,31 @@ function ScoreMeter({ label, score, delay = 0, insight }: { label: string; score
   const safe = safeScore(score)
   useEffect(() => { const t = setTimeout(() => setAnimated(true), delay); return () => clearTimeout(t) }, [delay])
 
-  const statusTone = safe >= 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    : safe >= 50 ? 'bg-amber-50 text-amber-700 border-amber-200'
-    : 'bg-red-50 text-red-700 border-red-200'
+  const barColor = safe >= 75 ? 'rgba(0,255,136,0.85)' : safe >= 50 ? 'rgba(251,191,36,0.85)' : 'rgba(248,113,113,0.85)'
+  const tagStyle = safe >= 75
+    ? { background: 'rgba(0,255,136,0.1)', border: '1px solid rgba(0,255,136,0.3)', color: '#00FF88' }
+    : safe >= 50
+    ? { background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', color: 'rgba(251,191,36,0.9)' }
+    : { background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', color: 'rgba(248,113,113,0.9)' }
 
   return (
-    <div className="ui-card p-4">
+    <div className="ui-card p-4 score-card-reveal">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <span className="text-xs text-slate-500 uppercase tracking-wide leading-tight">{label}</span>
-          <div className="mt-1 text-3xl font-display font-bold text-slate-900">{safe}%</div>
+          <span className="text-xs uppercase tracking-wide leading-tight" style={{ color: 'var(--text-muted)' }}>{label}</span>
+          <div className="mt-1 font-display text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{safe}%</div>
         </div>
-        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${statusTone}`}>
+        <span className="rounded-full px-2.5 py-1 text-[11px] font-medium" style={tagStyle}>
           {scoreLabel(safe)}
         </span>
       </div>
-      <div className="mb-2 w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full transition-all duration-1000 ${scoreBarColor(safe)}`}
-          style={{ width: animated ? `${safe}%` : '0%' }} />
+      <div className="mb-2 w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+        <div
+          className="h-full rounded-full transition-all duration-1000"
+          style={{ width: animated ? `${safe}%` : '0%', background: barColor }}
+        />
       </div>
-      <div className="text-xs text-slate-500">
+      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
         {insight ?? `${safe}/100`}
       </div>
     </div>
@@ -50,7 +55,7 @@ function ScoreMeter({ label, score, delay = 0, insight }: { label: string; score
 
 function Skeleton() {
   return (
-    <div className="min-h-screen bg-slate-50 px-6 py-8">
+    <div className="min-h-screen px-6 py-8" style={{ background: 'var(--bg-base)' }}>
       <div className="max-w-4xl mx-auto space-y-6">
         {[48, 96, 320, 192, 240].map(h => (
           <div key={h} className="skeleton rounded-xl" style={{ height: h }} />
@@ -67,6 +72,13 @@ export default function ReportPage({ params }: { params: { id: string } }) {
   const [activeTab,    setActiveTab]    = useState<Tab>('overview')
   const [error,        setError]        = useState<string | null>(null)
   const [feedbackSent, setFeedbackSent] = useState(false)
+  const [shareToast,   setShareToast]   = useState(false)
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href).catch(() => {})
+    setShareToast(true)
+    setTimeout(() => setShareToast(false), 2400)
+  }
 
   useEffect(() => {
     async function load() {
@@ -228,39 +240,74 @@ export default function ReportPage({ params }: { params: { id: string } }) {
   const goalLabel = isExistingReport ? 'Turnaround report' : safeReport?.user_goal_mode === 'grow_existing' ? 'Growth report' : 'New business report'
   const operatingHours = safeReport?.operating_hours || 'Not provided'
   const sourceBadge = (label?: string) => {
-    if (label === 'real_data') return <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">Real data</span>
-    if (label === 'rules_based') return <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs text-sky-700">Rules based</span>
-    return <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">Estimated insight</span>
+    if (label === 'real_data') return (
+      <span className="rounded-full px-2 py-0.5 text-xs" style={{ border: '1px solid rgba(0,255,136,0.3)', background: 'rgba(0,255,136,0.08)', color: '#00FF88' }}>Real data</span>
+    )
+    if (label === 'rules_based') return (
+      <span className="rounded-full px-2 py-0.5 text-xs" style={{ border: '1px solid rgba(0,212,255,0.3)', background: 'rgba(0,212,255,0.08)', color: '#00D4FF' }}>Rules based</span>
+    )
+    return (
+      <span className="rounded-full px-2 py-0.5 text-xs" style={{ border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.08)', color: 'rgba(251,191,36,0.9)' }}>Estimated insight</span>
+    )
   }
 
   if (loading) return <Skeleton />
   if (error || !report) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center text-center px-6">
+    <div className="min-h-screen flex items-center justify-center text-center px-6" style={{ background: 'var(--bg-base)' }}>
       <div>
-        <div className="text-4xl mb-4">🔍</div>
-        <h1 className="text-xl font-display font-bold text-slate-900 mb-2">Report not found</h1>
-        <p className="text-slate-500 mb-6">{error ?? 'This report may have expired.'}</p>
-        <Link href="/analyze" className="bg-brand-500 text-white px-6 py-3 rounded-xl text-sm font-medium">Generate new report</Link>
+        <div className="text-5xl mb-4">🔍</div>
+        <h1 className="text-xl font-display font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Report not found</h1>
+        <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>{error ?? 'This report may have expired or the URL is incorrect.'}</p>
+        <Link href="/analyze" className="ui-primary-btn px-6 py-3 rounded-xl text-sm font-medium">Generate new report</Link>
       </div>
     </div>
   )
 
+  const isOnlineReport = report.business_model_type === 'online'
+  const suburbOpportunityLabel = isOnlineReport ? 'Market Reach Score' : 'Suburb opportunity'
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+
+      {/* Share toast */}
+      {shareToast && (
+        <div
+          className="fixed top-4 left-1/2 z-[200] -translate-x-1/2 rounded-2xl px-4 py-2.5 text-sm font-medium fade-up"
+          style={{
+            background: 'rgba(0,255,136,0.12)',
+            border: '1px solid rgba(0,255,136,0.4)',
+            color: '#00FF88',
+            backdropFilter: 'blur(16px)',
+          }}
+        >
+          Link copied to clipboard
+        </div>
+      )}
 
       {/* Nav */}
-      <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white/90 backdrop-blur-md">
-        <Link href="/" className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors text-sm">
+      <div
+        className="sticky top-0 z-40 flex items-center justify-between px-6 py-4"
+        style={{ borderBottom: '1px solid var(--border-soft)', background: 'rgba(10,15,30,0.88)', backdropFilter: 'blur(24px)' }}
+      >
+        <Link href="/" className="flex items-center gap-2 text-sm transition-colors" style={{ color: 'var(--text-muted)' }}>
           <ArrowLeft size={16} /> Home
         </Link>
-        <span className="font-display font-bold text-slate-900 text-sm">GlobalBiz <span className="text-brand-500">AI</span></span>
+        <span className="font-display font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+          GlobalBiz <span className="gradient-text">AI</span>
+        </span>
         <div className="flex items-center gap-2">
-          <button onClick={() => { navigator.clipboard.writeText(window.location.href).catch(() => {}) }}
-            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 border border-slate-200 hover:border-slate-300 px-3 py-1.5 rounded-lg transition-all">
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-all"
+            style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-card)', color: 'var(--text-secondary)' }}
+          >
             <Share2 size={13} /> Share
           </button>
-          <button onClick={() => window.print()}
-            className="flex items-center gap-1.5 text-xs bg-brand-500/15 text-brand-400 border border-brand-500/30 hover:bg-brand-500/25 px-3 py-1.5 rounded-lg transition-all">
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-all"
+            style={{ border: '1px solid rgba(0,255,136,0.25)', background: 'rgba(0,255,136,0.07)', color: '#00FF88' }}
+          >
             <Download size={13} /> PDF
           </button>
         </div>
@@ -270,51 +317,58 @@ export default function ReportPage({ params }: { params: { id: string } }) {
 
         {/* Header */}
         <div className="fade-up fade-up-1">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mb-3">
+          <div className="flex flex-wrap items-center gap-2 text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
             <MapPin size={12} /><span>{locationLine || 'Australia'}</span>
-            <span className="w-1 h-1 rounded-full bg-[#2a3040]" />
+            <span className="w-1 h-1 rounded-full" style={{ background: 'var(--border-medium)' }} />
             <Building2 size={12} /><span>{report.business_type}</span>
-            <span className="w-1 h-1 rounded-full bg-[#2a3040]" />
+            <span className="w-1 h-1 rounded-full" style={{ background: 'var(--border-medium)' }} />
             <span>{goalLabel}</span>
-            <span className="w-1 h-1 rounded-full bg-[#2a3040]" />
+            <span className="w-1 h-1 rounded-full" style={{ background: 'var(--border-medium)' }} />
             <span>{new Date(report.created_at).toLocaleDateString('en-AU')}</span>
             {a.nearby_data && (
               <>
-                <span className="w-1 h-1 rounded-full bg-slate-300" />
-                <span className="text-brand-500">{a.nearby_data.total_found} real competitors · {sourceLabel}</span>
+                <span className="w-1 h-1 rounded-full" style={{ background: 'var(--border-medium)' }} />
+                <span style={{ color: '#00FF88' }}>{a.nearby_data.total_found} real competitors · {sourceLabel}</span>
               </>
             )}
           </div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 mb-3">
+          <h1 className="mb-3 font-display text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
             {isExistingReport ? 'Business turnaround report' : 'Australia business growth intelligence report'}
           </h1>
-          {isExistingReport && (safeReport as unknown as Record<string, unknown>)?.business_name && (
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-semibold text-slate-900 shadow-sm">
-              <Building2 size={14} className="text-emerald-500" />
+          {isExistingReport && Boolean((safeReport as unknown as Record<string, unknown>)?.business_name) && (
+            <div
+              className="mb-3 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold"
+              style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+            >
+              <Building2 size={14} style={{ color: '#00FF88' }} />
               {String((safeReport as unknown as Record<string, unknown>).business_name)}
             </div>
           )}
           <div className="mb-3">{sourceBadge(a.section_sources?.nearby_competitors)}</div>
-          <p className="text-slate-600 leading-relaxed max-w-2xl">{a.executive_summary || a.summary}</p>
+          <p className="leading-relaxed max-w-2xl" style={{ color: 'var(--text-secondary)' }}>{a.executive_summary || a.summary}</p>
         </div>
 
         {/* Hero score */}
-        <div className="fade-up fade-up-2 ui-card p-6">
+        <div className="fade-up fade-up-2 ui-card p-6 glow-green">
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="text-center sm:text-left">
-              <div className="text-xs text-slate-500 uppercase tracking-widest mb-2">Overall viability</div>
-              <div className={`text-7xl font-display font-bold ${scoreColor(viabilityScore)}`}>{viabilityScore}%</div>
-              <div className={`text-base font-medium mt-1 ${scoreColor(viabilityScore)}`}>{scoreLabel(viabilityScore)}</div>
+              <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Overall viability</div>
+              <div className="font-display text-7xl font-bold" style={{ background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                {viabilityScore}%
+              </div>
+              <div className="text-base font-medium mt-1" style={{ color: viabilityScore >= 75 ? '#00FF88' : viabilityScore >= 50 ? 'rgba(251,191,36,0.9)' : 'rgba(248,113,113,0.9)' }}>
+                {scoreLabel(viabilityScore)}
+              </div>
               {a.nearby_data && (
-                <div className="text-xs text-slate-500 mt-2">{a.nearby_data.total_found} competitors · {a.nearby_data.competitor_density} density</div>
+                <div className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>{a.nearby_data.total_found} competitors · {a.nearby_data.competitor_density} density</div>
               )}
             </div>
             <div className="flex-1 w-full">
               <ResponsiveContainer width="100%" height={200}>
                 <RadarChart data={radarData}>
-                  <PolarGrid stroke="rgba(148,163,184,0.3)" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#4a5568', fontSize: 11 }} />
-                  <Radar dataKey="value" stroke="#10b981" fill="#10b981" fillOpacity={0.15} strokeWidth={1.5} />
+                  <PolarGrid stroke="rgba(255,255,255,0.08)" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(240,244,255,0.5)', fontSize: 11 }} />
+                  <Radar dataKey="value" stroke="#00FF88" fill="#00FF88" fillOpacity={0.1} strokeWidth={1.5} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
@@ -329,7 +383,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
           <ScoreMeter label="Digital maturity" score={digitalMaturityScore} delay={75} insight="Website, profile, and channel quality" />
           <ScoreMeter label="Differentiation" score={differentiationScore} delay={90} insight="How clearly you can stand out" />
           <ScoreMeter label="Cultural fit" score={safeScore(a.cultural_fit_score)} delay={100} insight="Audience and suburb alignment" />
-          <ScoreMeter label="Suburb opportunity" score={suburbOpportunityScore} delay={120} insight="Local upside in this catchment" />
+          <ScoreMeter label={suburbOpportunityLabel} score={suburbOpportunityScore} delay={120} insight={isOnlineReport ? 'Online market reach potential' : 'Local upside in this catchment'} />
           <ScoreMeter label="Pricing fit" score={pricingFitScore} delay={200} insight="Price point alignment with the market" />
           <ScoreMeter label="Pricing confidence" score={safeScore(a.pricing_confidence_score ?? a.pricing_fit_score)} delay={240} insight="How believable the pricing path is" />
           <ScoreMeter label="Opportunity gap" score={safeScore(a.opportunity_gap_score ?? 50)} delay={300} insight="Available whitespace in the market" />
@@ -341,61 +395,82 @@ export default function ReportPage({ params }: { params: { id: string } }) {
           <ScoreMeter label="Brand strength" score={safeScore(a.local_brand_strength_score ?? 50)} delay={550} insight="Local trust and recall" />
           <ScoreMeter label="Digital acquisition" score={safeScore(a.digital_acquisition_strength_score ?? 50)} delay={575} insight="Ability to attract demand online" />
           <div className="ui-card p-4">
-            <div className="text-xs text-slate-500 uppercase tracking-wide mb-2">Retention risk</div>
-            <div className={`text-2xl font-display font-bold ${riskColor(safeScore(a.retention_risk_score ?? 50))}`}>{riskLabel(safeScore(a.retention_risk_score ?? 50))}</div>
-            <div className="text-xs text-slate-500 mt-1">{safeScore(a.retention_risk_score ?? 50)}/100</div>
+            <div className="ui-label">Retention risk</div>
+            <div className={`font-display text-2xl font-bold ${riskColor(safeScore(a.retention_risk_score ?? 50))}`}>{riskLabel(safeScore(a.retention_risk_score ?? 50))}</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{safeScore(a.retention_risk_score ?? 50)}/100</div>
           </div>
           <div className="ui-card p-4">
-            <div className="text-xs text-slate-500 uppercase tracking-wide mb-2">SEO gap</div>
-            <div className="text-2xl font-display font-bold text-amber-500">{safeScore(a.seo_gap_score ?? 45)}%</div>
-            <div className="text-xs text-slate-500 mt-1">/100 gap</div>
+            <div className="ui-label">SEO gap</div>
+            <div className="font-display text-2xl font-bold" style={{ color: 'rgba(251,191,36,0.9)' }}>{safeScore(a.seo_gap_score ?? 45)}%</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>/100 gap</div>
           </div>
           <div className="ui-card p-4">
-            <div className="text-xs text-slate-500 uppercase tracking-wide mb-2">Customer lifetime</div>
-            <div className="text-2xl font-display font-bold text-emerald-500">{safeScore(a.customer_lifetime_score ?? 50)}%</div>
-            <div className="text-xs text-slate-500 mt-1">/100 quality</div>
+            <div className="ui-label">Customer lifetime</div>
+            <div className="font-display text-2xl font-bold" style={{ color: '#00FF88' }}>{safeScore(a.customer_lifetime_score ?? 50)}%</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>/100 quality</div>
           </div>
           <div className="ui-card p-4">
-            <div className="text-xs text-slate-500 uppercase tracking-wide mb-2">Social opportunity</div>
-            <div className="text-2xl font-display font-bold text-emerald-500">{safeScore(a.social_media_opportunity_score ?? 50)}%</div>
-            <div className="text-xs text-slate-500 mt-1">/100 upside</div>
+            <div className="ui-label">Social opportunity</div>
+            <div className="font-display text-2xl font-bold" style={{ color: '#00D4FF' }}>{safeScore(a.social_media_opportunity_score ?? 50)}%</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>/100 upside</div>
           </div>
           <div className="ui-card p-4">
-            <div className="text-xs text-slate-500 uppercase tracking-wide mb-2">Failure risk</div>
-            <div className={`text-2xl font-display font-bold ${riskColor(safeScore(a.failure_risk_score))}`}>{riskLabel(safeScore(a.failure_risk_score))}</div>
-            <div className="text-xs text-slate-500 mt-1">{safeScore(a.failure_risk_score)}/100</div>
+            <div className="ui-label">Failure risk</div>
+            <div className={`font-display text-2xl font-bold ${riskColor(safeScore(a.failure_risk_score))}`}>{riskLabel(safeScore(a.failure_risk_score))}</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{safeScore(a.failure_risk_score)}/100</div>
           </div>
           <div className="ui-card p-4">
-            <div className="text-xs text-slate-500 uppercase tracking-wide mb-2">Break-even</div>
-            <div className="text-2xl font-display font-bold text-slate-900">{Number.isFinite(a.break_even_months) ? a.break_even_months : 0}</div>
-            <div className="text-xs text-slate-500 mt-1">months</div>
+            <div className="ui-label">Break-even</div>
+            <div className="font-display text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{Number.isFinite(a.break_even_months) ? a.break_even_months : 0}</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>months</div>
           </div>
           <div className="ui-card p-4">
-            <div className="text-xs text-slate-500 uppercase tracking-wide mb-2">Competitors</div>
-            <div className={`text-2xl font-display font-bold ${scoreColor(safeScore(100 - safeScore(a.competitor_saturation_score)))}`}>
+            <div className="ui-label">Competitors</div>
+            <div className="font-display text-2xl font-bold" style={{ color: '#00FF88' }}>
               {a.nearby_data?.total_found ?? '—'}
             </div>
-            <div className="text-xs text-slate-500 mt-1">{a.nearby_data ? `${a.nearby_data.competitor_density}` : 'estimated'}</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{a.nearby_data ? `${a.nearby_data.competitor_density}` : 'estimated'}</div>
           </div>
           <div className="ui-card p-4">
-            <div className="text-xs text-slate-500 uppercase tracking-wide mb-2">Saturation</div>
-            <div className={`text-2xl font-display font-bold ${scoreColor(safeScore(100 - safeScore(a.competitor_saturation_score)))}`}>{safeScore(a.competitor_saturation_score)}%</div>
-            <div className="text-xs text-slate-500 mt-1">/100</div>
+            <div className="ui-label">Saturation</div>
+            <div className={`font-display text-2xl font-bold ${scoreColor(safeScore(100 - safeScore(a.competitor_saturation_score)))}`}>{safeScore(a.competitor_saturation_score)}%</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>/100</div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="border-b border-slate-200 flex gap-0 overflow-x-auto">
-          {tabs.map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)}
-              className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px flex items-center gap-1.5
-                ${activeTab === t.id ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>
-              {t.label}
-              {t.badge !== undefined && (
-                <span className="text-xs bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full leading-none">{t.badge}</span>
-              )}
-            </button>
-          ))}
+        {/* Tabs — sticky frosted */}
+        <div
+          className="sticky top-14 z-30 -mx-6 px-6 overflow-x-auto"
+          style={{
+            background: 'rgba(10,15,30,0.85)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            borderBottom: '1px solid var(--border-soft)',
+          }}
+        >
+          <div className="flex gap-0">
+            {tabs.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
+                className="px-4 py-3 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-px flex items-center gap-1.5"
+                style={{
+                  borderBottomColor: activeTab === t.id ? '#00FF88' : 'transparent',
+                  color: activeTab === t.id ? '#00FF88' : 'var(--text-muted)',
+                }}
+              >
+                {t.label}
+                {t.badge !== undefined && (
+                  <span
+                    className="text-xs px-1.5 py-0.5 rounded-full leading-none"
+                    style={{ background: 'rgba(0,255,136,0.1)', color: '#00FF88' }}
+                  >
+                    {t.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* ── Overview ── */}
@@ -404,31 +479,31 @@ export default function ReportPage({ params }: { params: { id: string } }) {
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="ui-card p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <CheckCircle size={16} className="text-emerald-500" />
-                  <span className="font-display font-semibold text-slate-900 text-sm">
+                  <CheckCircle size={16} style={{ color: '#00FF88' }} />
+                  <span className="font-display font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
                     {isExistingReport ? "What's working" : 'Executive summary'}
                   </span>
                 </div>
-                <p className="mb-4 text-sm leading-relaxed text-slate-600">{a.summary}</p>
+                <p className="mb-4 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{a.summary}</p>
                 <ul className="space-y-2">
                   {a.why_succeed?.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
-                      <span className="text-emerald-500 mt-0.5 flex-shrink-0">✓</span>{item}
+                    <li key={i} className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                      <span className="mt-0.5 flex-shrink-0" style={{ color: '#00FF88' }}>✓</span>{item}
                     </li>
                   ))}
                 </ul>
               </div>
               <div className="ui-card p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <AlertTriangle size={16} className="text-amber-500" />
-                  <span className="font-display font-semibold text-slate-900 text-sm">
+                  <AlertTriangle size={16} style={{ color: 'rgba(251,191,36,0.9)' }} />
+                  <span className="font-display font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
                     {isExistingReport ? 'Root causes of underperformance' : 'Key bottlenecks'}
                   </span>
                 </div>
                 <ul className="space-y-2">
                   {(a.key_bottlenecks?.length ? a.key_bottlenecks : a.why_fail)?.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
-                      <span className="text-amber-500 mt-0.5 flex-shrink-0">•</span>{item}
+                    <li key={i} className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                      <span className="mt-0.5 flex-shrink-0" style={{ color: 'rgba(251,191,36,0.9)' }}>•</span>{item}
                     </li>
                   ))}
                 </ul>
@@ -438,8 +513,8 @@ export default function ReportPage({ params }: { params: { id: string } }) {
             {a.fastest_growth_levers?.length > 0 && (
               <div className="ui-card p-5">
                 <div className="mb-4 flex items-center gap-2">
-                  <TrendingUp size={16} className="text-emerald-500" />
-                  <span className="font-display font-semibold text-slate-900 text-sm">Fastest growth levers</span>
+                  <TrendingUp size={16} style={{ color: '#00FF88' }} />
+                  <span className="font-display font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Fastest growth levers</span>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3">
                   {a.fastest_growth_levers.map((item, i) => (

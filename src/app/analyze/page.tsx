@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Check, ChevronDown, MapPin, Search, Sparkles, Store, X, Building2, MapPinned } from 'lucide-react'
@@ -85,10 +85,10 @@ const TIME_OPTIONS = [
 ] as const
 
 const LOADING_STAGES = [
-  { label: 'Checking the Australian market...', sub: 'Combining suburb signals, competitor data, and feasibility logic.' },
-  { label: 'Reviewing competitors and gaps...', sub: 'Separating real local data from estimated insights.' },
-  { label: 'Scoring launch or growth potential...', sub: 'Comparing budget, pricing, timing, and expansion upside.' },
-  { label: 'Building your action plan...', sub: 'Adding Australian setup, permits, and next-step guidance.' },
+  { label: 'Scanning competitors...', sub: 'Pulling real Google Maps data and competitor signals for your area.' },
+  { label: 'Analysing demand...', sub: 'Measuring suburb-level demand, audience fit, and market gaps.' },
+  { label: 'Generating insights...', sub: 'Scoring viability, differentiation, and expansion readiness.' },
+  { label: 'Building your action plan...', sub: 'Adding Australian setup, permits, and 90-day guidance.' },
 ]
 
 const DEFAULT_FORM: BusinessFormData = {
@@ -188,6 +188,9 @@ const DEFAULT_FORM: BusinessFormData = {
   delivery_order_percentage: 0,
   walk_in_percentage: 0,
   customer_lifetime_estimate: '',
+  competitor_url_1: '',
+  competitor_url_2: '',
+  competitor_url_3: '',
 }
 
 type FormErrors = Partial<Record<keyof BusinessFormData | 'suburb_search', string>>
@@ -200,7 +203,7 @@ const GROW_EXISTING_STEP_FIELD_ORDER = [
   ['website_url', 'google_business_profile_url', 'average_google_rating'],
   ['current_monthly_revenue', 'current_challenges'],
   ['strategic_goals', 'expansion_goal', 'growth_strategy_type'],
-  ['suburb_search', 'radius_km'],
+  [], // Step 5: summary only - no new fields
 ] as const
 
 function getStartNewStepFieldOrder(group: BusinessGroup, form: BusinessFormData) {
@@ -237,7 +240,7 @@ function getStartNewStepFieldOrder(group: BusinessGroup, form: BusinessFormData)
       'launch_inventory_assumption',
     ],
     ['startup_budget', 'expected_revenue', 'launch_timeline', 'risk_tolerance', 'growth_goal', 'break_even_expectation'],
-    [...(isPhysical ? ['suburb_search', 'radius_km'] : ['target_market', 'delivery_coverage'])],
+    [], // Step 5: competitor scan summary — no new required fields
   ] as const
 }
 
@@ -460,15 +463,20 @@ function SegmentedControl({
   onChange: (value: string) => void
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1 sm:grid-cols-4">
+    <div
+      className="grid gap-2 rounded-2xl p-1"
+      style={{
+        gridTemplateColumns: `repeat(${Math.min(options.length, 4)}, 1fr)`,
+        border: '1px solid var(--border-soft)',
+        background: 'rgba(255,255,255,0.03)',
+      }}
+    >
       {options.map(option => (
         <button
           key={option}
           type="button"
           onClick={() => onChange(option)}
-          className={`transition-all ${
-            value === option ? 'ui-segment-selected' : 'ui-segment'
-          }`}
+          className={`transition-all ${value === option ? 'ui-segment-selected' : 'ui-segment'}`}
         >
           {option}
         </button>
@@ -493,13 +501,14 @@ function SliderField({
   onChange: (value: number) => void
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+    <div className="rounded-2xl px-4 py-3" style={{ border: '1px solid var(--border-soft)', background: 'rgba(255,255,255,0.03)' }}>
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm text-slate-500">Current value</span>
-        <span className="font-display text-lg font-semibold text-slate-900">{value}{suffix}</span>
+        <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Current value</span>
+        <span className="font-display text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{value}{suffix}</span>
       </div>
       <input
-        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-emerald-500"
+        className="h-1.5 w-full cursor-pointer appearance-none rounded-full accent-emerald-400"
+        style={{ background: 'rgba(255,255,255,0.1)' }}
         type="range"
         min={min}
         max={max}
@@ -516,8 +525,8 @@ function AuditCard({ title, hint, children }: { title: string; hint: string; chi
     <div className="ui-section">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <div className="font-display text-lg font-semibold text-slate-900">{title}</div>
-          <div className="mt-1 text-sm text-slate-500">{hint}</div>
+          <div className="font-display text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</div>
+          <div className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>{hint}</div>
         </div>
       </div>
       {children}
@@ -565,8 +574,8 @@ function BooleanCard({
   onChange: (value: boolean) => void
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="mb-3 text-sm font-medium text-slate-900">{label}</div>
+    <div className="rounded-2xl p-4" style={{ border: '1px solid var(--border-soft)', background: 'rgba(255,255,255,0.03)' }}>
+      <div className="mb-3 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{label}</div>
       <div className="grid grid-cols-2 gap-2">
         {[
           { text: 'No', val: false },
@@ -576,11 +585,12 @@ function BooleanCard({
             key={option.text}
             type="button"
             onClick={() => onChange(option.val)}
-            className={`rounded-xl border px-3 py-2 text-sm transition-colors ${
-              value === option.val
-                ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
-            }`}
+            className="rounded-xl px-3 py-2 text-sm transition-all"
+            style={{
+              border: value === option.val ? '1px solid rgba(0,255,136,0.5)' : '1px solid var(--border-soft)',
+              background: value === option.val ? 'rgba(0,255,136,0.1)' : 'var(--bg-card)',
+              color: value === option.val ? '#00FF88' : 'var(--text-secondary)',
+            }}
           >
             {option.text}
           </button>
@@ -705,21 +715,27 @@ function GoalModeCards({
 }) {
   return (
     <div className="space-y-3">
-      {USER_GOAL_OPTIONS.map(option => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-            className={`w-full rounded-2xl border p-5 text-left transition-all ${
-            value === option.value ? 'border-emerald-500 bg-emerald-50 shadow-md' : 'border-slate-200 bg-white shadow-sm hover:border-slate-300 hover:shadow-md'
-          }`}
-        >
-          <div className={`mb-1 font-display text-lg font-semibold ${value === option.value ? 'text-emerald-700' : 'text-slate-900'}`}>
-            {option.label}
-          </div>
-          <div className="text-sm leading-relaxed text-slate-600">{option.description}</div>
-        </button>
-      ))}
+      {USER_GOAL_OPTIONS.map(option => {
+        const selected = value === option.value
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className="w-full rounded-2xl p-5 text-left transition-all"
+            style={{
+              border: selected ? '1px solid rgba(0,255,136,0.5)' : '1px solid var(--border-soft)',
+              background: selected ? 'rgba(0,255,136,0.07)' : 'var(--bg-card)',
+              boxShadow: selected ? '0 0 24px rgba(0,255,136,0.12)' : 'none',
+            }}
+          >
+            <div className="mb-1 font-display text-lg font-semibold" style={{ color: selected ? '#00FF88' : 'var(--text-primary)' }}>
+              {option.label}
+            </div>
+            <div className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{option.description}</div>
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -786,19 +802,27 @@ function SuburbCombobox({
 
   return (
     <div className="space-y-3" ref={wrapperRef}>
-      <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="rounded-[28px] p-4" style={{ border: '1px solid var(--border-soft)', background: 'var(--bg-card)' }}>
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold text-slate-900">Australian suburb lookup</div>
-            <div className="mt-1 text-xs text-slate-400">Search suburb, postcode, council, or nearby area. We’ll auto-fill the postcode and coordinates.</div>
+            <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Australian suburb lookup</div>
+            <div className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Search suburb, postcode, council, or nearby area. We&apos;ll auto-fill the postcode and coordinates.</div>
           </div>
-          <div className="rounded-full border border-emerald-500 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">{state}</div>
+          <div
+            className="rounded-full px-3 py-1 text-xs font-medium"
+            style={{ border: '1px solid rgba(0,255,136,0.4)', background: 'rgba(0,255,136,0.08)', color: '#00FF88' }}
+          >{state}</div>
         </div>
         <div className="relative">
-        <MapPin className="ui-input-icon left-4 h-5 w-5 text-emerald-500" />
+        <MapPin className="ui-input-icon left-4 h-5 w-5" style={{ color: '#00FF88' }} />
         <input
           ref={inputRef}
-          className="h-14 w-full rounded-2xl border border-slate-300 bg-white pl-12 pr-24 text-base text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+          className="h-14 w-full rounded-2xl pl-12 pr-24 text-base outline-none transition-all"
+          style={{
+            border: '1px solid var(--border-medium)',
+            background: 'rgba(255,255,255,0.05)',
+            color: 'var(--text-primary)',
+          }}
           placeholder={state ? 'Search suburb, postcode, council, or nearby area…' : 'Select a state first'}
           value={query}
           onFocus={() => setOpen(true)}
@@ -835,7 +859,10 @@ function SuburbCombobox({
           <div className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-500">AU only</div>
         </div>
         {showMenu && (
-          <div className="relative z-20 mt-3 w-full overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-2xl">
+          <div
+            className="relative z-20 mt-3 w-full overflow-hidden rounded-[24px] shadow-2xl"
+            style={{ border: '1px solid var(--border-soft)', background: '#0D1425', backdropFilter: 'blur(20px)' }}
+          >
             <div className="border-b border-slate-100 px-4 py-3">
               <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-400">
                 <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
@@ -1040,20 +1067,22 @@ function validateStep(step: number, form: BusinessFormData): FormErrors {
       if (!form.business_type) errors.business_type = FIELD_GUIDANCE.business_type
       if (!form.products_services.trim()) errors.products_services = FIELD_GUIDANCE.products_services
       if (!form.avg_price_range) errors.avg_price_range = FIELD_GUIDANCE.avg_price_range
-      if (!form.state) errors.state = FIELD_GUIDANCE.state
+      if (isPhysical && !form.state) errors.state = FIELD_GUIDANCE.state
       if (isPhysical && !form.suburb_profile) errors.suburb_search = FIELD_GUIDANCE.suburb_search
       if (!form.business_age_band) errors.business_age_band = FIELD_GUIDANCE.business_age_band
-      if (!form.premises_type) errors.premises_type = FIELD_GUIDANCE.premises_type
-      if (!form.radius_km) errors.radius_km = FIELD_GUIDANCE.radius_km
+      if (isPhysical && !form.premises_type) errors.premises_type = FIELD_GUIDANCE.premises_type
+      if (isPhysical && !form.radius_km) errors.radius_km = FIELD_GUIDANCE.radius_km
     } else {
-      if (!form.state) errors.state = FIELD_GUIDANCE.state
+      // Pure online: no location fields required
+      const isPureOnline = form.business_model_type === 'online'
+      if (!isPureOnline && !form.state) errors.state = FIELD_GUIDANCE.state
       if (isPhysical && !form.suburb_profile) errors.suburb_search = FIELD_GUIDANCE.suburb_search
       if (isPhysical && !form.radius_km) errors.radius_km = FIELD_GUIDANCE.radius_km
       if (isOnline && !form.target_market) errors.target_market = FIELD_GUIDANCE.target_market
       if (isOnline && !form.delivery_coverage) errors.delivery_coverage = FIELD_GUIDANCE.delivery_coverage
-      if (!isDigitalTechBusiness && !form.demand_zone_type) errors.demand_zone_type = FIELD_GUIDANCE.demand_zone_type
-      if (!isDigitalTechBusiness && !form.delivery_zone_importance) errors.delivery_zone_importance = FIELD_GUIDANCE.delivery_zone_importance
-      if (!isDigitalTechBusiness && !form.anchor_locations.length) errors.anchor_locations = FIELD_GUIDANCE.anchor_locations
+      if (isPhysical && !isDigitalTechBusiness && !form.demand_zone_type) errors.demand_zone_type = FIELD_GUIDANCE.demand_zone_type
+      if (isPhysical && !isDigitalTechBusiness && !form.delivery_zone_importance) errors.delivery_zone_importance = FIELD_GUIDANCE.delivery_zone_importance
+      if (isPhysical && !isDigitalTechBusiness && !form.anchor_locations.length) errors.anchor_locations = FIELD_GUIDANCE.anchor_locations
       if (isOnline && form.delivery_coverage === 'Custom coverage' && !form.delivery_coverage_custom.trim()) {
         errors.delivery_coverage_custom = FIELD_GUIDANCE.delivery_coverage_custom
       }
@@ -1107,10 +1136,8 @@ function validateStep(step: number, form: BusinessFormData): FormErrors {
     }
   }
 
-  if (step === 5) {
-    if (isPhysical && !form.suburb_profile) errors.suburb_search = FIELD_GUIDANCE.suburb_search
-    if (isPhysical && !form.radius_km) errors.radius_km = FIELD_GUIDANCE.radius_km
-  }
+  // Step 5 (Competitors) is a summary/confirmation step — no extra validation needed
+  // suburb_search and radius_km were already validated in step 2
 
   return errors
 }
@@ -1141,7 +1168,7 @@ export default function AnalyzePage() {
   const isDigitalTechBusiness = isDigitalTechGroup(businessGroup)
   const productPerformanceOptions = useMemo(() => getDynamicProductServiceOptions(form), [form])
   const stepLabels = form.user_goal_mode === 'grow_existing'
-    ? ['Goal', 'Snapshot', 'Digital', 'What’s Wrong', 'Next Move', 'Competitors']
+    ? ['Goal', 'Snapshot', 'Digital', "What's Wrong", 'Next Move', 'Competitors']
     : ['Goal', 'Demand Zone', 'Market Fit', 'Setup', 'Budget', 'Competitors']
   const totalSteps = stepLabels.length
 
@@ -1232,13 +1259,13 @@ export default function AnalyzePage() {
   const currentStepValid = Object.keys(currentStepErrors).length === 0
   const shouldShowFieldError = (field: keyof BusinessFormData | 'suburb_search') => touchedFields.has(field) || attemptedSteps.has(step)
   const visibleError = (field: keyof BusinessFormData | 'suburb_search') => shouldShowFieldError(field) ? toInlineError(field, errors[field]) : undefined
-  const markFieldTouched = (...fields: Array<keyof BusinessFormData | 'suburb_search'>) => {
+  const markFieldTouched = useCallback((...fields: Array<keyof BusinessFormData | 'suburb_search'>) => {
     setTouchedFields(prev => {
       const next = new Set(prev)
       fields.forEach(field => next.add(field))
       return next
     })
-  }
+  }, [])
 
   const getFieldOrderForStep = (targetStep: number) => {
     if (form.user_goal_mode === 'grow_existing') {
@@ -1480,16 +1507,21 @@ export default function AnalyzePage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
-      <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
-        <Link href="/" className="flex items-center gap-2 text-sm text-slate-500 transition-colors hover:text-slate-900">
+    <div className="flex min-h-screen flex-col" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+      <div
+        className="flex items-center justify-between px-6 py-4"
+        style={{ borderBottom: '1px solid var(--border-soft)', background: 'rgba(10,15,30,0.85)', backdropFilter: 'blur(20px)' }}
+      >
+        <Link href="/" className="flex items-center gap-2 text-sm transition-colors" style={{ color: 'var(--text-muted)' }}>
           <ArrowLeft size={16} />
           GlobalBiz AI
         </Link>
-        <span className="font-display text-sm font-bold text-slate-900">
-          GlobalBiz <span className="text-brand-500">AI</span>
+        <span className="font-display text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+          GlobalBiz <span className="gradient-text">AI</span>
         </span>
-        {remaining !== null ? <span className="text-xs text-slate-500">{remaining} free reports left today</span> : <span />}
+        {remaining !== null ? (
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{remaining} free reports left today</span>
+        ) : <span />}
       </div>
 
       <StepProgress step={step} totalSteps={totalSteps} labels={stepLabels} />
@@ -1497,7 +1529,10 @@ export default function AnalyzePage() {
       <div className="mx-auto flex-1 w-full max-w-3xl px-6 py-8">
         <div className="space-y-5 fade-up">
           {!currentStepValid ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div
+              className="rounded-2xl px-4 py-3 text-sm"
+              style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)', color: 'rgba(251,191,36,0.9)' }}
+            >
               {buildStepHelperText(currentStepErrors, step)}
             </div>
           ) : null}
@@ -1505,19 +1540,32 @@ export default function AnalyzePage() {
           {step === 0 && (
             <>
               <div data-field="user_goal_mode" className="scroll-mt-28">
-                <h2 className="mb-1 text-2xl font-display font-bold text-slate-900">What do you want to do?</h2>
-                <p className="text-sm text-slate-500">Choose the business goal first, then tell us whether this is physical, online, or hybrid.</p>
+                <h2 className="mb-1 font-display text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>What do you want to do?</h2>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Choose the business goal first, then tell us whether this is physical, online, or hybrid.</p>
               </div>
               <GoalModeCards value={form.user_goal_mode} onChange={value => setField('user_goal_mode', value)} />
 
-              <div data-field="business_model_type" className="scroll-mt-28 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="mb-4">
-                  <h3 className="mb-1 text-xl font-display font-semibold text-slate-900">What type of business is this?</h3>
-                  <p className="text-sm text-slate-500">This controls the location, competitor, and delivery analysis logic.</p>
+              {form.user_goal_mode === 'grow_existing' && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field fieldKey="website_url" label="Your website URL" hint="Add your website so we can assess digital maturity and trust signals in the report.">
+                    <input className="form-input" placeholder="https://yourbusiness.com.au" value={form.website_url} onChange={e => setField('website_url', e.target.value)} />
+                  </Field>
+                  <Field label="Business model" hint="This controls location, competitor, and delivery analysis logic.">
+                    <BusinessModelStep value={form.business_model_type as BusinessModelType | ''} onChange={value => setField('business_model_type', value)} />
+                  </Field>
                 </div>
-                <BusinessModelStep value={form.business_model_type as BusinessModelType | ''} onChange={value => setField('business_model_type', value)} />
-                {visibleError('business_model_type') ? <p className="mt-2 text-xs text-amber-700">{visibleError('business_model_type')}</p> : null}
-              </div>
+              )}
+
+              {form.user_goal_mode === 'start_new' && (
+                <div data-field="business_model_type" className="scroll-mt-28 rounded-2xl p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)' }}>
+                  <div className="mb-4">
+                    <h3 className="mb-1 font-display text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>What type of business is this?</h3>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>This controls the location, competitor, and delivery analysis logic.</p>
+                  </div>
+                  <BusinessModelStep value={form.business_model_type as BusinessModelType | ''} onChange={value => setField('business_model_type', value)} />
+                  {visibleError('business_model_type') ? <p className="mt-2 text-xs" style={{ color: 'rgba(251,191,36,0.9)' }}>{visibleError('business_model_type')}</p> : null}
+                </div>
+              )}
 
               {form.user_goal_mode === 'start_new' && (
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -1582,15 +1630,17 @@ export default function AnalyzePage() {
                 <Field label="Premium upsell price" hint="Optional. Useful if you have a higher-ticket version, bundle, or premium service.">
                   <CurrencyInput value={form.premium_upsell_price} onChange={value => setField('premium_upsell_price', value)} placeholder="89" />
                 </Field>
-                <Field fieldKey="state" label="State or territory" required error={visibleError('state')}>
-                  <Select options={AU_STATES} value={form.state} onChange={value => setField('state', value)} placeholder="Select state or territory..." />
-                </Field>
                 <Field fieldKey="business_age_band" label="Business age" required error={visibleError('business_age_band')}>
                   <Select options={BUSINESS_AGE_OPTIONS} value={form.business_age_band} onChange={value => setField('business_age_band', value)} placeholder="Choose operating age..." />
                 </Field>
-                {form.state && (
+                {isPhysical && (
+                  <Field fieldKey="state" label="State or territory" required error={visibleError('state')}>
+                    <Select options={AU_STATES} value={form.state} onChange={value => setField('state', value)} placeholder="Select state or territory..." />
+                  </Field>
+                )}
+                {isPhysical && form.state && (
                   <div className="sm:col-span-2">
-                    <Field fieldKey="suburb_search" label="Current suburb" required error={undefined}>
+                    <Field fieldKey="suburb_search" label="Current suburb" required error={visibleError('suburb_search')}>
                       <SuburbCombobox
                         state={form.state}
                         query={suburbSearch}
@@ -1615,18 +1665,22 @@ export default function AnalyzePage() {
                     </Field>
                   </div>
                 )}
-                <Field fieldKey="radius_km" label="Competitor radius" required error={visibleError('radius_km')}>
-                  <div className="grid grid-cols-4 gap-2">
-                    {RADIUS_OPTIONS.map(radius => (
-                      <button key={radius} type="button" onClick={() => setField('radius_km', radius)} className={`rounded-xl border py-2.5 text-sm font-medium transition-colors ${form.radius_km === radius ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'}`}>
-                        {radius}km
-                      </button>
-                    ))}
-                  </div>
-                </Field>
-                <Field fieldKey="premises_type" label="Premises" required error={visibleError('premises_type')}>
-                  <SegmentedControl options={PREMISES_TYPE_OPTIONS} value={form.premises_type} onChange={value => setField('premises_type', value as BusinessFormData['premises_type'])} />
-                </Field>
+                {isPhysical && (
+                  <Field fieldKey="radius_km" label="Competitor radius" required error={visibleError('radius_km')}>
+                    <div className="grid grid-cols-4 gap-2">
+                      {RADIUS_OPTIONS.map(radius => (
+                        <button key={radius} type="button" onClick={() => setField('radius_km', radius)} className={`rounded-xl border py-2.5 text-sm font-medium transition-all ${form.radius_km === radius ? 'ui-chip-selected' : 'ui-chip'}`}>
+                          {radius}km
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+                )}
+                {isPhysical && (
+                  <Field fieldKey="premises_type" label="Premises" required error={visibleError('premises_type')}>
+                    <SegmentedControl options={PREMISES_TYPE_OPTIONS} value={form.premises_type} onChange={value => setField('premises_type', value as BusinessFormData['premises_type'])} />
+                  </Field>
+                )}
                 <Field label="Business model">
                   <BusinessModelStep value={form.business_model_type as BusinessModelType | ''} onChange={value => setField('business_model_type', value)} />
                 </Field>
@@ -1648,26 +1702,28 @@ export default function AnalyzePage() {
                 </p>
               </div>
 
-              <Field fieldKey="state" label="State or territory" required error={visibleError('state')}>
-                <Select
-                  options={AU_STATES}
-                  value={form.state}
-                  onChange={value => {
-                    setForm(prev => ({
-                      ...prev,
-                      state: value,
-                      suburb: '',
-                      postcode: '',
-                      city: '',
-                      lat: null,
-                      lng: null,
-                      suburb_profile: null,
-                    }))
-                    setSuburbSearch('')
-                  }}
-                  placeholder="Select state or territory..."
-                />
-              </Field>
+              {isPhysical && (
+                <Field fieldKey="state" label="State or territory" required error={visibleError('state')}>
+                  <Select
+                    options={AU_STATES}
+                    value={form.state}
+                    onChange={value => {
+                      setForm(prev => ({
+                        ...prev,
+                        state: value,
+                        suburb: '',
+                        postcode: '',
+                        city: '',
+                        lat: null,
+                        lng: null,
+                        suburb_profile: null,
+                      }))
+                      setSuburbSearch('')
+                    }}
+                    placeholder="Select state or territory..."
+                  />
+                </Field>
+              )}
 
               {isPhysical && form.state && (
                 <Field fieldKey="suburb_search" label="Suburb lookup" required hint="Premium suburb search with council, postcode, and area guidance for Australian business owners.">
@@ -1875,7 +1931,7 @@ export default function AnalyzePage() {
                   </Field>
                 </div>
                 <div className="sm:col-span-2">
-                  <Field fieldKey="target_age_groups" label="Age groups" required error={visibleError('target_age_groups')} hint="This helps us judge whether the suburb’s demographic profile fits the idea.">
+                  <Field fieldKey="target_age_groups" label="Age groups" required error={visibleError('target_age_groups')} hint="This helps us judge whether the suburb's demographic profile fits the idea.">
                     <ToggleChips options={AGE_GROUP_OPTIONS} values={form.target_age_groups} onToggle={value => toggleArrayValue('target_age_groups', value)} />
                   </Field>
                 </div>
@@ -2054,6 +2110,11 @@ export default function AnalyzePage() {
                   <Field fieldKey="startup_budget" label="Startup budget" required error={visibleError('startup_budget')}>
                     <CurrencyInput value={form.startup_budget} onChange={value => setField('startup_budget', value)} placeholder="50,000" />
                   </Field>
+                  {parseMoney(form.startup_budget) > 0 && parseMoney(form.startup_budget) < 5000 && (
+                    <div className="sm:col-span-2 budget-warning">
+                      <strong>Low-budget warning:</strong> A startup budget under $5,000 significantly limits setup options for most business types. The report will flag high financial risk and limited runway. Consider whether the budget is sufficient for your chosen model before proceeding.
+                    </div>
+                  )}
                   <Field fieldKey="expected_revenue" label="Expected monthly revenue" required error={visibleError('expected_revenue')}>
                     <CurrencyInput value={form.expected_revenue} onChange={value => setField('expected_revenue', value)} placeholder="15,000" />
                   </Field>
@@ -2195,7 +2256,7 @@ export default function AnalyzePage() {
 
                   <AuditCard
                     title="Digital footprint"
-                    hint="Add the channels customers actually use. We’ll estimate digital trust, SEO strength, and brand maturity from what you provide."
+                    hint="Add the channels customers actually use. We'll estimate digital trust, SEO strength, and brand maturity from what you provide."
                   >
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Field label="Website URL">
@@ -2282,31 +2343,78 @@ export default function AnalyzePage() {
           {step === 5 && (
             <>
               <div>
-                <h2 className="mb-1 text-2xl font-display font-bold text-slate-900">Real competitor scan</h2>
+                <h2 className="mb-1 text-2xl font-display font-bold text-slate-900">
+                  {isOnline && !isPhysical ? 'Online market analysis' : 'Real competitor scan'}
+                </h2>
                 <p className="text-sm text-slate-500">
-                  The final report will use real Google Maps competitor data, competitor density, weak operators, and nearby retail or food clusters when available.
+                  {isOnline && !isPhysical
+                    ? 'The report will analyse your delivery coverage, online competitors, and digital market fit across Australia.'
+                    : 'The final report will use real Google Maps competitor data, competitor density, weak operators, and nearby retail or food clusters when available.'}
                 </p>
               </div>
               <div className="ui-section">
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {isPhysical && (
+                    <div className="ui-info-box">
+                      <div className="ui-label">Radius</div>
+                      <div className="mt-1 text-sm" style={{ color: 'var(--text-primary)' }}>{form.radius_km}km competitor scan</div>
+                    </div>
+                  )}
                   <div className="ui-info-box">
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Radius</div>
-                    <div className="mt-1 text-sm text-slate-900">{form.radius_km}km real competitor scan</div>
+                    <div className="ui-label">Target area</div>
+                    <div className="mt-1 text-sm" style={{ color: 'var(--text-primary)' }}>
+                      {isOnline && !isPhysical
+                        ? (form.target_market || 'Australian market')
+                        : (form.suburb || form.current_location_suburb || form.state || 'Australia')}
+                    </div>
                   </div>
                   <div className="ui-info-box">
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Target area</div>
-                    <div className="mt-1 text-sm text-slate-900">{form.suburb || form.target_market || form.current_location_suburb || form.state || 'Australia'}</div>
+                    <div className="ui-label">
+                      {isOnline && !isPhysical ? 'Coverage' : isDigitalTechBusiness ? 'Market context' : 'Demand zone'}
+                    </div>
+                    <div className="mt-1 text-sm" style={{ color: 'var(--text-primary)' }}>
+                      {isOnline && !isPhysical
+                        ? (form.delivery_coverage || 'Australian market')
+                        : isDigitalTechBusiness
+                        ? (form.target_market || 'Australian online market')
+                        : (form.demand_zone_type || 'Mixed catchment')}
+                    </div>
                   </div>
                   <div className="ui-info-box">
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-400">{isDigitalTechBusiness ? 'Market context' : 'Demand zone'}</div>
-                    <div className="mt-1 text-sm text-slate-900">{isDigitalTechBusiness ? (form.target_market || 'Australian online market') : (form.demand_zone_type || 'Mixed catchment')}</div>
-                  </div>
-                  <div className="ui-info-box">
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-400">{isDigitalTechBusiness ? 'Competition lens' : 'Anchors nearby'}</div>
-                    <div className="mt-1 text-sm text-slate-900">{isDigitalTechBusiness ? 'Local substitutes + broader online competitors' : (form.anchor_locations.slice(0, 2).join(', ') || 'General local traffic')}</div>
+                    <div className="ui-label">
+                      {isOnline && !isPhysical ? 'Business model' : isDigitalTechBusiness ? 'Competition lens' : 'Anchors nearby'}
+                    </div>
+                    <div className="mt-1 text-sm" style={{ color: 'var(--text-primary)' }}>
+                      {isOnline && !isPhysical
+                        ? 'Online / digital'
+                        : isDigitalTechBusiness
+                        ? 'Local substitutes + broader online competitors'
+                        : (form.anchor_locations.slice(0, 2).join(', ') || 'General local traffic')}
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {isOnline && !isPhysical && (
+                <div className="ui-section space-y-4">
+                  <div>
+                    <div className="mb-1 font-display text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Competitor URLs</div>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                      Add up to 3 direct online competitors so the report can benchmark differentiation and positioning gaps.
+                    </p>
+                  </div>
+                  <Field fieldKey="competitor_url_1" label="Competitor 1 URL" hint="Optional but improves the online competitive analysis significantly.">
+                    <input className="form-input" placeholder="https://competitorone.com.au" value={form.competitor_url_1} onChange={e => setField('competitor_url_1', e.target.value)} />
+                  </Field>
+                  <Field fieldKey="competitor_url_2" label="Competitor 2 URL">
+                    <input className="form-input" placeholder="https://competitortwo.com.au" value={form.competitor_url_2} onChange={e => setField('competitor_url_2', e.target.value)} />
+                  </Field>
+                  <Field fieldKey="competitor_url_3" label="Competitor 3 URL">
+                    <input className="form-input" placeholder="https://competitorthree.com.au" value={form.competitor_url_3} onChange={e => setField('competitor_url_3', e.target.value)} />
+                  </Field>
+                </div>
+              )}
+
               <ReportSummary form={form} />
             </>
           )}
@@ -2314,24 +2422,29 @@ export default function AnalyzePage() {
       </div>
 
       {loading && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-white/92 backdrop-blur-sm">
-          <div className="relative">
-            <div className="h-16 w-16 animate-spin rounded-full border-2 border-brand-500/20 border-t-brand-500" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-7 w-7 animate-pulse rounded-full bg-brand-500/20" />
-            </div>
-          </div>
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6"
+          style={{ background: 'rgba(10,15,30,0.92)', backdropFilter: 'blur(24px)' }}
+        >
+          <div
+            className="relative h-16 w-16 animate-spin rounded-full"
+            style={{ border: '2px solid rgba(0,255,136,0.15)', borderTopColor: '#00FF88' }}
+          />
           <div className="text-center">
-            <div className="mb-1 font-display text-lg font-bold text-slate-900">{LOADING_STAGES[loadingStage].label}</div>
-            <div className="text-sm text-slate-500">{LOADING_STAGES[loadingStage].sub}</div>
+            <div className="mb-1 font-display text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+              {LOADING_STAGES[loadingStage].label}
+            </div>
+            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{LOADING_STAGES[loadingStage].sub}</div>
           </div>
           <div className="flex max-w-xs flex-wrap justify-center gap-1.5">
-            {['Market', 'Competitors', 'Scoring', 'Roadmap'].map((label, index) => (
+            {['Scanning', 'Demand', 'Insights', 'Plan'].map((label, index) => (
               <div
                 key={label}
-                className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                  index <= loadingStage ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500'
-                }`}
+                className="rounded-full px-3 py-1 text-xs transition-all"
+                style={index <= loadingStage
+                  ? { border: '1px solid rgba(0,255,136,0.4)', background: 'rgba(0,255,136,0.1)', color: '#00FF88' }
+                  : { border: '1px solid var(--border-soft)', background: 'var(--bg-card)', color: 'var(--text-muted)' }
+                }
               >
                 {label}
               </div>

@@ -236,6 +236,7 @@ export function buildExistingFallbackAnalysis(
     why_fail: content.rootCauses.slice(0, 4),
     missing_elements: content.gapAnalysis.slice(0, 4),
     key_bottlenecks: content.rootCauses.slice(0, 4),
+    opportunity_highlights: content.top5Fixes.slice(0, 3),
     fastest_growth_levers: content.top5Fixes.slice(0, 3),
     competitor_threats: content.threats,
     why_competitors_succeed: scores.signals.strong_competitors.slice(0, 3).map(c =>
