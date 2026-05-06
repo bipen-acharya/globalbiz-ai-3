@@ -6,11 +6,11 @@ import {
   GoogleMap,
   InfoWindow,
   MarkerF,
-  useJsApiLoader,
 } from '@react-google-maps/api'
 import type { NearbyPlace } from '@/types'
 import { priceLevelLabel } from '@/lib/utils'
 import { NEXT_PUBLIC_GOOGLE_MAPS_API_KEY } from '@/lib/env'
+import { useGoogleMaps } from '@/components/GoogleMapsProvider'
 
 interface Props {
   lat: number
@@ -21,7 +21,6 @@ interface Props {
   businessType?: string
 }
 
-const libraries: ('places')[] = ['places']
 const mapContainerStyle = {
   width: '100%',
   height: '380px',
@@ -81,11 +80,7 @@ function MapFallback({ suburb, message }: { suburb: string; message: string }) {
 export function CompetitorMapInner({ lat, lng, radiusKm, competitors, suburb }: Props) {
   const [selected, setSelected] = useState<NearbyPlace | null>(null)
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-  const { isLoaded, loadError } = useJsApiLoader({
-    id: 'globalbiz-google-map',
-    googleMapsApiKey: apiKey,
-    libraries,
-  })
+  const { isLoaded, loadError } = useGoogleMaps()
 
   const center = useMemo(() => ({ lat, lng }), [lat, lng])
   const stableCompetitors = useMemo(

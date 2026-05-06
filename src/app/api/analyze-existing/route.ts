@@ -53,17 +53,22 @@ async function saveReport(
   let db
   try { db = await getDB() } catch { return null }
 
+  const modelType =
+    form.location_type === 'online' ? 'online' :
+    form.location_type === 'both'   ? 'hybrid' :
+    'physical'
+
   const { data, error } = await db
     .from('reports')
     .insert({
       report_type:          'existing',
-      business_model_type:  'physical',
-      country:              'Australia',
+      business_model_type:  modelType,
+      country:              form.country || 'Australia',
       state_province:       form.state,
-      city:                 form.city,
+      city:                 form.city || form.suburb || null,
       suburb:               form.suburb || null,
       postcode:             form.postcode || null,
-      radius_km:            3,
+      radius_km:            form.location_type !== 'online' ? (form.radius_km ?? 10) : null,
       lat:                  form.lat || null,
       lng:                  form.lng || null,
       business_type:        form.business_type,
@@ -83,11 +88,16 @@ function mapToScoringForm(form: ExistingBusinessFormData, lat: number | null, ln
   const revenueNum = parseInt(form.current_revenue?.replace(/\D/g, '') || '0', 10)
   const budgetNum = parseInt(form.change_budget?.replace(/\D/g, '') || '0', 10)
 
+  const modelType =
+    form.location_type === 'online' ? 'online' :
+    form.location_type === 'both'   ? 'hybrid' :
+    'physical'
+
   return {
     user_goal_mode:               'grow_existing',
     business_name:                form.business_name,
     business_concept:             form.description,
-    business_model_type:          'physical',
+    business_model_type:          modelType,
     state:                        form.state,
     suburb:                       form.suburb,
     postcode:                     form.postcode,
@@ -95,7 +105,7 @@ function mapToScoringForm(form: ExistingBusinessFormData, lat: number | null, ln
     lat,
     lng,
     suburb_profile:               null,
-    radius_km:                    3,
+    radius_km:                    form.radius_km ?? 10,
     business_type:                form.business_type,
     business_type_other:          '',
     products_services:            form.description,
@@ -198,9 +208,15 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeSucces
   // 2. Validate required fields
   if (!form.business_name?.trim()) return jsonError('business_name is required', 422)
   if (!form.business_type?.trim()) return jsonError('business_type is required', 422)
-  if (!form.state?.trim()) return jsonError('state is required', 422)
-  if (!form.suburb?.trim()) return jsonError('suburb is required', 422)
   if (!form.situation_description?.trim()) return jsonError('situation_description is required', 422)
+
+  const locationType = form.location_type ?? 'physical'
+  const needsAddress = locationType === 'physical' || locationType === 'both'
+  const isOnline     = locationType === 'online'
+
+  if (needsAddress && !form.suburb?.trim()) return jsonError('suburb is required for physical businesses', 422)
+  if (!isOnline && !form.state?.trim()) return jsonError('state is required', 422)
+  if (isOnline && !form.state?.trim()) return jsonError('state is required for online businesses', 422)
 
   // 3. Daily cap
   const today = new Date().toISOString().split('T')[0]
@@ -211,7 +227,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeSucces
   let lat = form.lat
   let lng = form.lng
 
-  if (!lat || !lng) {
+  if (needsAddress && (!lat || !lng) && form.suburb && form.state) {
     try {
       const coords = await geocodeSuburb(form.suburb, form.state, form.postcode ?? '')
       lat = coords.lat
@@ -222,20 +238,22 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeSucces
     }
   }
 
-  // 5. Fetch nearby competitors
+  // 5. Fetch nearby competitors (physical/both only)
   let nearby = null
-  try {
-    nearby = await fetchNearbyCompetitors({
-      lat,
-      lng,
-      radiusKm: 3,
-      businessType: form.business_type,
-      suburb: form.suburb,
-      state: form.state,
-      postcode: form.postcode,
-    })
-  } catch (err) {
-    console.warn('[analyze-existing] competitor fetch error:', err)
+  if (needsAddress) {
+    try {
+      nearby = await fetchNearbyCompetitors({
+        lat,
+        lng,
+        radiusKm: form.radius_km ?? 10,
+        businessType: form.business_type,
+        suburb: form.suburb,
+        state: form.state,
+        postcode: form.postcode,
+      })
+    } catch (err) {
+      console.warn('[analyze-existing] competitor fetch error:', err)
+    }
   }
 
   // 6. Run scoring engine using mapped form shape

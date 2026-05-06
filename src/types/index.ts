@@ -270,10 +270,13 @@ export interface AnalysisResult {
 }
 
 export interface ExistingBusinessFormData {
+  // New: location type added as first question
+  location_type: 'physical' | 'online' | 'both'
   business_name: string
   business_type: string
   website_url: string
   google_maps_url: string
+  // Physical/Both — from Google Maps address picker
   address: string
   state: string
   suburb: string
@@ -281,6 +284,9 @@ export interface ExistingBusinessFormData {
   city: string
   lat: number | null
   lng: number | null
+  radius_km: number
+  // Online — country/state selection
+  country: string
   years_operating: string
   current_revenue: string
   staff_count: number

@@ -358,19 +358,29 @@ density_per_sqkm=${s.density_per_sqkm}
 data_source=${nearby?.source ?? 'none'}
 `
 
-  const prompt = `You are Australia's most experienced business turnaround analyst.
+  const locationType  = data.location_type ?? 'physical'
+  const isOnlineBiz   = locationType === 'online'
+  const isBothBiz     = locationType === 'both'
+
+  const locationLine = isOnlineBiz
+    ? `Online business operating in ${data.state}, ${data.country || 'Australia'}`
+    : isBothBiz
+    ? `Physical + online business at ${data.address || data.suburb}, ${data.state} — also operates at ${data.website_url || 'online'}`
+    : `Physical business at ${data.suburb || 'Unknown suburb'}, ${data.state} ${data.postcode}`
+
+  const prompt = `You are an expert business turnaround analyst for ${data.country || 'Australia'}.
 
 EXISTING BUSINESS INPUT:
 - Business: ${data.business_name || data.business_type}
 - Type: ${data.business_type}
-- Location: ${data.suburb || 'Unknown suburb'}, ${data.state} ${data.postcode}
-- Address: ${data.address || 'not provided'}
+- Business model: ${locationType === 'online' ? 'Online only' : locationType === 'both' ? 'Physical + Online' : 'Physical / Local'}
+- Location: ${locationLine}
 - Years operating: ${data.years_operating}
 - Staff: ${data.staff_count}
 - Monthly revenue: ${data.current_revenue || 'not stated'}
 - Description: ${data.description || 'not provided'}
 - Website: ${data.website_url || 'none'}
-- Google Maps listing: ${data.google_maps_url || 'none'}
+- Google Business Profile: ${data.google_maps_url || 'none'}
 - Social handles: ${data.social_handles || 'none'}
 
 PROBLEMS FLAGGED:
@@ -391,22 +401,34 @@ ${data.change_budget || 'not stated'}
 RESULT TIMELINE:
 ${data.timeline || 'not stated'}
 
-NEARBY COMPETITORS (live data):
-${competitorLines || 'No competitor data available'}
+${isOnlineBiz
+  ? `ONLINE COMPETITOR CONTEXT:\nThis is an online-only business. Identify the top online competitors in the ${data.business_type} category operating in ${data.state}, ${data.country || 'Australia'}. Analyse their likely strengths vs this business based on typical category dynamics.`
+  : `NEARBY COMPETITORS (live data):\n${competitorLines || 'No competitor data available'}`
+}
 
 ${signalBlock}
 
 TASK: Generate a turnaround-focused business intelligence report as a JSON object.
 Do NOT write a feasibility report — this is an EXISTING BUSINESS that needs TURNAROUND ADVICE.
 
-Focus on:
+${isOnlineBiz
+  ? `Focus on (ONLINE business context):
+1. Root causes of underperformance in the online channel
+2. What top online competitors in the same category are doing better (SEO, UX, pricing, reviews)
+3. Digital gap analysis: traffic, conversion, social proof, brand positioning
+4. Pricing diagnosis vs online market benchmarks
+5. Top 5 online growth levers in ROI order
+6. 90-day digital turnaround roadmap
+7. Whether to fix, pivot, or exit — with clear reasoning`
+  : `Focus on:
 1. Root causes of underperformance vs nearby competitors
 2. Competitor advantages this business is losing to
 3. Gap analysis: what competitors offer that this business doesn't
 4. Pricing diagnosis vs local market average
 5. Top 5 things to fix in ROI order
 6. 90-day turnaround roadmap (not a launch roadmap)
-7. Whether to fix, pivot, or exit — with clear reasoning based on the data
+7. Whether to fix, pivot, or exit — with clear reasoning based on the data`
+}
 
 Return ONLY valid JSON with this exact structure:
 {

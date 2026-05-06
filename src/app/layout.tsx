@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { NotificationsProvider } from '@/components/ui/notifications'
 import FloatingChatButton from '@/components/FloatingChatButton'
+import GoogleMapsProvider from '@/components/GoogleMapsProvider'
 
 export const metadata: Metadata = {
   title: 'GlobalBiz AI — Business Feasibility Intelligence',
@@ -21,8 +22,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className="min-h-screen antialiased">
-        <NotificationsProvider>{children}</NotificationsProvider>
-        <FloatingChatButton />
+        <GoogleMapsProvider>
+          <NotificationsProvider>{children}</NotificationsProvider>
+          <FloatingChatButton />
+        </GoogleMapsProvider>
       </body>
     </html>
   )
