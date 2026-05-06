@@ -12,16 +12,16 @@ export function safeScore(value?: number) {
 
 export function scoreColor(score: number): string {
   score = safeScore(score)
-  if (score >= 75) return 'text-emerald-400'
-  if (score >= 50) return 'text-amber-400'
-  return 'text-red-400'
+  if (score >= 75) return 'text-emerald-600'
+  if (score >= 50) return 'text-amber-600'
+  return 'text-red-600'
 }
 
 export function scoreBarColor(score: number): string {
   score = safeScore(score)
-  if (score >= 75) return 'bg-emerald-400'
-  if (score >= 50) return 'bg-amber-400'
-  return 'bg-red-400'
+  if (score >= 75) return 'bg-emerald-500'
+  if (score >= 50) return 'bg-amber-500'
+  return 'bg-red-500'
 }
 
 export function scoreLabel(score: number): string {
@@ -41,10 +41,10 @@ export function riskLabel(score: number): string {
 }
 
 export function riskColor(score: number): string {
-  if (score <= 25) return 'text-emerald-400'
-  if (score <= 50) return 'text-amber-400'
-  if (score <= 75) return 'text-orange-400'
-  return 'text-red-400'
+  if (score <= 25) return 'text-emerald-600'
+  if (score <= 50) return 'text-amber-600'
+  if (score <= 75) return 'text-orange-600'
+  return 'text-red-600'
 }
 
 // Safe for both client and server — no server-only APIs

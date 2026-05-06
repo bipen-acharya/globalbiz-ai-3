@@ -47,7 +47,7 @@ export function CompetitorInsights({ nearby }: Props) {
               <div className="text-xs text-slate-500 w-28 flex-shrink-0">{priceLevelLabel(level)}</div>
               <div className="flex-1 h-5 bg-slate-100 rounded overflow-hidden">
                 <div
-                  className="h-full bg-brand-500/60 rounded transition-all duration-700"
+                  className="h-full bg-blue-500/70 rounded transition-all duration-700"
                   style={{ width: `${(priceDist[level] / maxPrice) * 100}%` }}
                 />
               </div>
@@ -116,7 +116,7 @@ export function CompetitorInsights({ nearby }: Props) {
               </div>
               <div className="h-3 bg-slate-100 rounded-full overflow-hidden flex">
                 <div
-                  className="h-full bg-brand-500/70 rounded-l-full transition-all duration-700"
+                  className="h-full bg-blue-500/80 rounded-l-full transition-all duration-700"
                   style={{ width: `${(openCount / (openCount + closedCount)) * 100}%` }}
                 />
                 <div

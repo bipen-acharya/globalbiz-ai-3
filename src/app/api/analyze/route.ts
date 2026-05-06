@@ -94,13 +94,22 @@ async function saveReport(form: BusinessFormData, analysis: object, today: strin
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeSuccessResponse | AnalyzeErrorResponse>> {
+  // 0. Guard: require OpenAI key before doing any work
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('[analyze] OPENAI_API_KEY is not configured — set it in .env.local')
+    return jsonError('Service not configured. Please contact support.', 500)
+  }
+
   // 1. Parse
   let form: BusinessFormData
   try {
     if (!(req.headers.get('content-type') ?? '').includes('application/json'))
       return jsonError('Content-Type must be application/json', 400)
     form = normalizeReportInput(await req.json())
-  } catch { return jsonError('Invalid JSON body', 400) }
+  } catch (err) {
+    console.error('[analyze] JSON parse error:', err)
+    return jsonError('Invalid JSON body', 400)
+  }
 
   // 2. Validate
   const isPhysical = form.business_model_type === 'physical' || form.business_model_type === 'hybrid'
@@ -171,7 +180,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeSucces
   try {
     analysis = await generateAnalysis(form, nearby, scores)
   } catch (err) {
-    console.error('[route] generateAnalysis error:', err)
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[analyze] generateAnalysis failed:', msg)
+    if (msg.includes('OPENAI_API_KEY') || msg.includes('not set')) {
+      return jsonError('OpenAI API key is not configured. Add OPENAI_API_KEY to .env.local', 500)
+    }
     return jsonError('Failed to generate analysis. Please try again.', 500)
   }
 

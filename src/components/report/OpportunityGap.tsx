@@ -41,8 +41,8 @@ export function OpportunityGap({ analysis }: Props) {
       {analysis.best_underserved_niche && (
         <div className="ui-card p-5">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-400/15 flex items-center justify-center flex-shrink-0">
-              <span className="text-amber-400 text-sm">★</span>
+            <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center flex-shrink-0">
+              <span className="text-amber-600 text-sm">★</span>
             </div>
             <div>
               <div className="font-display font-semibold text-slate-900 text-sm mb-1">Best underserved niche</div>
@@ -56,8 +56,8 @@ export function OpportunityGap({ analysis }: Props) {
       {analysis.suggested_better_suburb && (
         <div className="ui-card-selected p-5">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-brand-500/15 flex items-center justify-center flex-shrink-0">
-              <span className="text-brand-400 text-sm">📍</span>
+            <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0">
+              <span className="text-blue-600 text-sm">📍</span>
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between gap-2 mb-1">

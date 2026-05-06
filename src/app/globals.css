@@ -16,16 +16,16 @@
   --bg-card-hover:  #F8FAFC;
   --border-soft:    #E2E8F0;
   --border-medium:  #CBD5E1;
-  --border-accent:  rgba(22, 163, 74, 0.4);
+  --border-accent:  rgba(37, 99, 235, 0.4);
 
   --text-primary:   #0F172A;
   --text-secondary: #475569;
   --text-muted:     #94A3B8;
 
-  --accent-green:   #16A34A;
+  --accent-blue:    #2563EB;
   --accent-cyan:    #0EA5E9;
-  --accent-gradient: linear-gradient(135deg, #16A34A 0%, #0EA5E9 100%);
-  --accent-glow:    0 0 40px rgba(22, 163, 74, 0.12);
+  --accent-gradient: linear-gradient(135deg, #2563EB 0%, #0EA5E9 100%);
+  --accent-glow:    0 0 40px rgba(37, 99, 235, 0.12);
 
   --radius-card:    16px;
   --radius-chip:    999px;
@@ -191,8 +191,8 @@ h1, h2, h3, h4 {
 }
 
 .form-input:focus {
-  border-color: #16A34A;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .form-input::placeholder { color: #94A3B8; }
@@ -205,7 +205,7 @@ select.form-input option {
 /* Progress bar */
 .progress-glow {
   background: var(--accent-gradient);
-  box-shadow: 0 0 10px rgba(22, 163, 74, 0.3);
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);
   transition: width 0.5s var(--ease-out-expo);
 }
 
@@ -250,10 +250,10 @@ select.form-input option {
   }
 
   .ui-card-selected {
-    background: #F0FDF4;
-    border: 2px solid #16A34A;
+    background: #EFF6FF;
+    border: 2px solid #2563EB;
     border-radius: var(--radius-card);
-    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.06);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.06);
   }
 
   .ui-section {
@@ -282,18 +282,18 @@ select.form-input option {
     cursor: pointer;
   }
   .ui-chip:hover {
-    border-color: #16A34A;
-    background: #F0FDF4;
-    color: #15803D;
+    border-color: #2563EB;
+    background: #EFF6FF;
+    color: #1D4ED8;
   }
 
   .ui-chip-selected {
     border-radius: var(--radius-chip);
-    border: 1px solid #16A34A;
-    background: #DCFCE7;
+    border: 1px solid #2563EB;
+    background: #DBEAFE;
     padding: 6px 14px;
     font-size: 13px;
-    color: #15803D;
+    color: #1D4ED8;
     font-weight: 500;
   }
 
@@ -312,11 +312,11 @@ select.form-input option {
 
   .ui-segment-selected {
     border-radius: 10px;
-    background: #DCFCE7;
-    border: 1px solid #16A34A;
+    background: #DBEAFE;
+    border: 1px solid #2563EB;
     padding: 8px 12px;
     font-size: 13px;
-    color: #15803D;
+    color: #1D4ED8;
     font-weight: 500;
   }
 
@@ -345,8 +345,8 @@ select.form-input option {
   }
   .ui-input:focus,
   .form-input:focus {
-    border-color: #16A34A;
-    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   }
 
   .ui-input-icon {
@@ -356,14 +356,14 @@ select.form-input option {
 
   .ui-primary-btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200;
-    background: #16A34A;
+    background: #2563EB;
     color: #FFFFFF;
-    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
   }
   .ui-primary-btn:hover {
-    background: #15803D;
+    background: #1D4ED8;
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(22, 163, 74, 0.35);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
   }
   .ui-primary-btn:disabled {
     opacity: 0.5;
@@ -390,13 +390,13 @@ select.form-input option {
   }
 
   .loading-progress-bar {
-    background: linear-gradient(90deg, #16A34A 0%, #0EA5E9 100%);
+    background: linear-gradient(90deg, #2563EB 0%, #0EA5E9 100%);
     animation: progress-bar 8s ease-in-out forwards;
   }
 
   .loading-spinner {
     border: 3px solid #E2E8F0;
-    border-top-color: #16A34A;
+    border-top-color: #2563EB;
     border-radius: 50%;
     animation: spin-slow 0.8s linear infinite;
   }
