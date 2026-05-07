@@ -1,14 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+/* Plus Jakarta Sans loaded via next/font — no external import needed */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-display: 'Syne', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  --font-body: var(--font-plus-jakarta), system-ui, sans-serif;
 
-  /* Light palette */
+  /* Palette */
   --bg-base:        #FFFFFF;
   --bg-section:     #F8FAFC;
   --bg-deep:        #F1F5F9;
@@ -23,8 +22,8 @@
   --text-muted:     #94A3B8;
 
   --accent-blue:    #2563EB;
-  --accent-cyan:    #0EA5E9;
-  --accent-gradient: linear-gradient(135deg, #2563EB 0%, #0EA5E9 100%);
+  --accent-indigo:  #6366F1;
+  --accent-gradient: linear-gradient(135deg, #2563EB 0%, #6366F1 100%);
   --accent-glow:    0 0 40px rgba(37, 99, 235, 0.12);
 
   --radius-card:    16px;
@@ -45,14 +44,25 @@ html {
 
 body {
   font-family: var(--font-body);
+  font-weight: 400;
   background: var(--bg-base);
   color: var(--text-primary);
   min-height: 100vh;
 }
 
-h1, h2, h3, h4 {
-  font-family: var(--font-display);
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-plus-jakarta), system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
+}
+p {
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+button, .ui-primary-btn, .ui-secondary-btn {
+  font-weight: 500;
 }
 
 /* ─── Scrollbar ─── */
@@ -61,9 +71,16 @@ h1, h2, h3, h4 {
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
+/* ─── Global smooth transitions ─── */
+a, button, input, select, textarea, [class*="ui-"] {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
 /* ─── Keyframe Animations ─── */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(24px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -72,19 +89,14 @@ h1, h2, h3, h4 {
   to   { opacity: 1; }
 }
 
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(30px); }
-  to   { opacity: 1; transform: translateX(0); }
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
 }
 
-@keyframes fillBar {
-  from { width: 0 }
-  to   { width: var(--target-width) }
-}
-
-@keyframes countUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+  50%       { box-shadow: 0 0 0 12px rgba(37, 99, 235, 0); }
 }
 
 @keyframes shimmer {
@@ -92,24 +104,25 @@ h1, h2, h3, h4 {
   100% { background-position:  200% 0; }
 }
 
-@keyframes pulse-cta {
-  0%, 100% { transform: scale(1); }
-  50%       { transform: scale(1.02); }
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
-@keyframes heroReveal {
-  0%   { opacity: 0; transform: translateY(24px); }
-  100% { opacity: 1; transform: translateY(0); }
+@keyframes scalePop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fillBar {
+  from { width: 0 }
+  to   { width: var(--target-width) }
 }
 
 @keyframes scoreReveal {
   0%   { opacity: 0; transform: scale(0.9); }
   100% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-6px); }
 }
 
 @keyframes spin-slow {
@@ -126,20 +139,30 @@ h1, h2, h3, h4 {
   95%  { width: 95%; }
 }
 
-/* ─── Utility classes ─── */
+/* ─── Animation utilities ─── */
+.animate-fade-up    { animation: fadeUp 0.6s ease-out both; }
+.animate-fade-in    { animation: fadeIn 0.5s ease-out both; }
+.animate-float      { animation: float 4s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
+.animate-slide-left { animation: slideInLeft 0.5s ease-out both; }
+.animate-scale-pop  { animation: scalePop 0.3s ease-in-out; }
+
+/* Stagger delays */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+
+/* Legacy staggered fade-up classes (kept for existing usage) */
 .fade-up   { animation: fadeUp 0.5s var(--ease-out-expo) forwards; }
 .fade-up-1 { animation: fadeUp 0.5s var(--ease-out-expo) 0.08s  forwards; opacity: 0; }
 .fade-up-2 { animation: fadeUp 0.5s var(--ease-out-expo) 0.16s  forwards; opacity: 0; }
 .fade-up-3 { animation: fadeUp 0.5s var(--ease-out-expo) 0.26s  forwards; opacity: 0; }
 .fade-up-4 { animation: fadeUp 0.5s var(--ease-out-expo) 0.36s  forwards; opacity: 0; }
 
-.score-bar {
-  animation: fillBar 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.score-card-reveal {
-  animation: scoreReveal 0.4s var(--ease-out-expo) forwards;
-}
+.score-bar         { animation: fillBar 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.score-card-reveal { animation: scoreReveal 0.4s var(--ease-out-expo) forwards; }
 
 /* ─── Card helpers ─── */
 .card-light {
@@ -149,15 +172,23 @@ h1, h2, h3, h4 {
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
   transition: box-shadow var(--duration-mid), transform var(--duration-mid);
 }
-
 .card-light:hover {
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
   transform: translateY(-2px);
 }
 
+/* Card hover effect (Task 6) */
+.card-hover {
+  transition: box-shadow var(--duration-mid), transform var(--duration-mid);
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
 /* ─── Gradient text ─── */
 .gradient-text {
-  background: var(--accent-gradient);
+  background: linear-gradient(135deg, #2563EB 0%, #6366F1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -165,12 +196,7 @@ h1, h2, h3, h4 {
 
 /* ─── Skeleton ─── */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    #F1F5F9 25%,
-    #E2E8F0 50%,
-    #F1F5F9 75%
-  );
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
   background-size: 200% 100%;
   animation: shimmer 1.6s infinite;
   border-radius: 8px;
@@ -189,18 +215,12 @@ h1, h2, h3, h4 {
   transition: border-color var(--duration-mid), box-shadow var(--duration-mid);
   outline: none;
 }
-
 .form-input:focus {
   border-color: #2563EB;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
-
 .form-input::placeholder { color: #94A3B8; }
-
-select.form-input option {
-  background: #FFFFFF;
-  color: #0F172A;
-}
+select.form-input option { background: #FFFFFF; color: #0F172A; }
 
 /* Progress bar */
 .progress-glow {
@@ -230,6 +250,24 @@ select.form-input option {
   font-size: 13px;
 }
 
+/* ─── Nav underline hover (Task 6) ─── */
+nav a {
+  position: relative;
+}
+nav a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #2563EB;
+  transition: width 0.3s ease;
+}
+nav a:hover::after {
+  width: 100%;
+}
+
 /* ─── Components ─── */
 @layer components {
   .ui-page {
@@ -243,10 +281,9 @@ select.form-input option {
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
     transition: box-shadow var(--duration-mid), transform var(--duration-mid);
   }
-
   .ui-card:hover {
-    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
-    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
   }
 
   .ui-card-selected {
@@ -283,7 +320,7 @@ select.form-input option {
   }
   .ui-chip:hover {
     border-color: #93C5FD;
-    background: #F0F9FF;
+    background: #EFF6FF;
     color: #1D4ED8;
   }
 
@@ -355,7 +392,7 @@ select.form-input option {
   }
 
   .ui-primary-btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200;
     background: #2563EB;
     color: #FFFFFF;
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
@@ -372,15 +409,15 @@ select.form-input option {
   }
 
   .ui-secondary-btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200;
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    color: #475569;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200;
+    background: transparent;
+    border: 2px solid #2563EB;
+    color: #2563EB;
   }
   .ui-secondary-btn:hover {
-    background: #F8FAFC;
-    border-color: #CBD5E1;
-    color: #0F172A;
+    background: #EFF6FF;
+    color: #1D4ED8;
+    border-color: #1D4ED8;
   }
 
   /* Loading overlay */
@@ -390,7 +427,7 @@ select.form-input option {
   }
 
   .loading-progress-bar {
-    background: linear-gradient(90deg, #2563EB 0%, #0EA5E9 100%);
+    background: linear-gradient(90deg, #2563EB 0%, #6366F1 100%);
     animation: progress-bar 8s ease-in-out forwards;
   }
 

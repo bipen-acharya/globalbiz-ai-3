@@ -152,19 +152,25 @@ export function CompetitorMapInner({ lat, lng, radiusKm, competitors, suburb }: 
         <GoogleMap
           mapContainerStyle={mapContainerStyle}
           center={center}
-          zoom={zoomForRadius(radiusKm)}
+          zoom={13}
           options={{
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: false,
           }}
           onLoad={map => {
-            console.log('Map init success')
-            const bounds = new window.google.maps.LatLngBounds()
-            bounds.extend(center)
-            stableCompetitors.forEach(competitor => bounds.extend({ lat: competitor.lat, lng: competitor.lng }))
             if (stableCompetitors.length > 0) {
-              map.fitBounds(bounds)
+              const bounds = new window.google.maps.LatLngBounds()
+              bounds.extend(center)
+              stableCompetitors.forEach(c => bounds.extend({ lat: c.lat, lng: c.lng }))
+              map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 })
+              const listener = window.google.maps.event.addListenerOnce(map, 'idle', () => {
+                if ((map.getZoom() ?? 0) > 15) map.setZoom(15)
+              })
+              void listener
+            } else {
+              map.setCenter(center)
+              map.setZoom(13)
             }
           }}
         >

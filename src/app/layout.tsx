@@ -1,8 +1,16 @@
 import type { Metadata } from 'next'
+import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import { NotificationsProvider } from '@/components/ui/notifications'
 import FloatingChatButton from '@/components/FloatingChatButton'
 import GoogleMapsProvider from '@/components/GoogleMapsProvider'
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-plus-jakarta',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'GlobalBiz AI — Business Feasibility Intelligence',
@@ -16,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={plusJakartaSans.variable}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
