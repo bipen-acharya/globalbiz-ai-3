@@ -121,7 +121,6 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeSucces
   if (isOnline && !form.delivery_coverage?.trim()) return jsonError('delivery_coverage is required for online or hybrid businesses', 422)
   if (form.delivery_coverage === 'Custom coverage' && !form.delivery_coverage_custom?.trim()) return jsonError('delivery_coverage_custom is required', 422)
   if (!form.business_type?.trim()) return jsonError('business_type is required', 422)
-  if (form.business_type === 'Other' && !form.business_type_other?.trim()) return jsonError('business_type_other is required when business_type is Other', 422)
   if (form.user_goal_mode === 'start_new' && !form.business_concept?.trim()) return jsonError('business_concept is required', 422)
   if (!form.products_services?.trim()) return jsonError('products_services is required', 422)
   if (!form.avg_price_range?.trim()) return jsonError('avg_price_range is required', 422)
@@ -131,7 +130,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeSucces
   if (form.user_goal_mode === 'grow_existing' && parseInt(form.current_monthly_revenue?.replace(/\D/g, '') || '0', 10) <= 0) return jsonError('current_monthly_revenue must be greater than 0', 422)
   if (form.user_goal_mode === 'grow_existing' && (!Array.isArray(form.current_challenges) || form.current_challenges.length === 0)) return jsonError('current_challenges is required', 422)
   if (form.user_goal_mode === 'grow_existing' && !form.growth_strategy_type?.trim()) return jsonError('growth_strategy_type is required', 422)
-  if (form.user_goal_mode === 'grow_existing' && !form.current_location_suburb?.trim()) return jsonError('current_location_suburb is required', 422)
+  if (form.user_goal_mode === 'grow_existing' && !isOnline && !form.current_location_suburb?.trim()) return jsonError('current_location_suburb is required', 422)
   if (form.user_goal_mode === 'grow_existing' && !form.business_name?.trim()) return jsonError('business_name is required', 422)
 
   // 3. Daily cap

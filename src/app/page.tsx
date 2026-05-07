@@ -1,19 +1,11 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Search, TrendingUp, MapPin, Wifi, BarChart3, Map, FileCheck, Star, CheckCircle, Zap } from 'lucide-react'
+import { ArrowRight, Search, TrendingUp, MapPin, Wifi, BarChart3, Map, FileCheck, CheckCircle, Zap } from 'lucide-react'
 
 export default function LandingPage() {
-  const [remaining, setRemaining] = useState<number | null>(null)
   const featuresRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    fetch('/api/daily-count')
-      .then(r => r.json())
-      .then(d => setRemaining(d.remaining))
-      .catch(() => setRemaining(10))
-  }, [])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -46,12 +38,6 @@ export default function LandingPage() {
     ['Expansion readiness', '68'],
   ]
 
-  const testimonials = [
-    { name: 'Sarah K.', business: 'Café owner, Adelaide', quote: 'Saved me from opening in the wrong suburb. The competitor density map was eye-opening.', stars: 5 },
-    { name: 'Marcus T.', business: 'E-commerce founder, Melbourne', quote: 'The digital vs physical analysis helped me skip the shopfront and go online-first. Best decision.', stars: 5 },
-    { name: 'Priya R.', business: 'Salon owner, Brisbane', quote: 'Got a 90-day action plan that actually made sense for my budget. Highly recommend.', stars: 5 },
-  ]
-
   return (
     <div className="min-h-screen bg-white text-slate-900">
 
@@ -61,11 +47,6 @@ export default function LandingPage() {
           GlobalBiz <span className="gradient-text">AI</span>
         </Link>
         <div className="flex items-center gap-4">
-          {remaining !== null && remaining > 0 && (
-            <span className="hidden rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700 sm:inline">
-              {remaining} free {remaining === 1 ? 'report' : 'reports'} left today
-            </span>
-          )}
           <Link href="/analyze" className="ui-primary-btn">
             Start free
           </Link>
@@ -89,20 +70,20 @@ export default function LandingPage() {
                 <span className="gradient-text">before the spend.</span>
               </h1>
 
+              <div className="mb-6 fade-up-3">
+                <Link href="/analyze" className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-4 font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md">
+                  Generate founder report <ArrowRight size={18} />
+                </Link>
+              </div>
+
               <p className="mb-8 max-w-lg text-lg leading-relaxed text-slate-600 fade-up-3">
                 Validate a new idea, understand why a current business is underperforming, and decide whether suburb, pricing, delivery, or digital growth is the smarter next move.
               </p>
 
               <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center fade-up-4">
-                {remaining === 0 ? (
-                  <Link href="/waitlist" className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-8 py-4 font-semibold text-amber-700 transition-all hover:bg-amber-100">
-                    Join today&apos;s waitlist <ArrowRight size={18} />
-                  </Link>
-                ) : (
-                  <Link href="/analyze" className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-4 font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md">
-                    Generate founder report <ArrowRight size={18} />
-                  </Link>
-                )}
+                <Link href="/analyze" className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-4 font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md">
+                  Generate founder report <ArrowRight size={18} />
+                </Link>
                 <Link href="/explore" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-8 py-4 font-semibold text-slate-600 transition-all hover:border-slate-300 hover:text-slate-900">
                   <Search size={18} />
                   Find businesses in my area
@@ -256,32 +237,6 @@ export default function LandingPage() {
                 ))}
               </ul>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Testimonials ── */}
-      <section className="bg-slate-50 px-6 py-24">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-14 text-center">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-blue-600">Social proof</p>
-            <h2 className="font-display text-3xl font-bold text-slate-900">Founders trust GlobalBiz AI</h2>
-          </div>
-          <div className="grid gap-6 md:grid-cols-3">
-            {testimonials.map((t, i) => (
-              <div key={t.name} className="reveal rounded-xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-md" style={{ transitionDelay: `${i * 80}ms` }}>
-                <div className="mb-3 flex items-center gap-0.5">
-                  {Array.from({ length: t.stars }).map((_, s) => (
-                    <Star key={s} size={14} className="fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="mb-4 text-sm leading-relaxed text-slate-600">&ldquo;{t.quote}&rdquo;</p>
-                <div>
-                  <div className="font-semibold text-slate-900">{t.name}</div>
-                  <div className="text-xs text-slate-400">{t.business}</div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>

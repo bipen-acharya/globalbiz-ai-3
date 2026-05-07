@@ -235,7 +235,8 @@ export default function ExistingPage() {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (raw) {
         const parsed = JSON.parse(raw) as { form: ExistingBusinessFormData; place: PlaceResult | null }
-        if (parsed.form) setForm(parsed.form)
+        // Merge with DEFAULT_FORM so new fields (location_type, radius_km, country) always have values
+        if (parsed.form) setForm({ ...DEFAULT_FORM, ...parsed.form })
         if (parsed.place) setPlace(parsed.place)
       }
     } catch { /* ignore */ }

@@ -85,7 +85,12 @@
       "Bash(kill -0 76846)",
       "Bash(awk '{print $2, $3, $8, $11, $12, $13}')",
       "Bash(chflags -R nouchg \"/Users/bipin/Desktop/globalbiz-ai-3/node_modules/.next 2-BJmUmdp9\")",
-      "Bash(xattr -cr \"/Users/bipin/Desktop/globalbiz-ai-3/node_modules/.next 2-BJmUmdp9\")"
+      "Bash(xattr -cr \"/Users/bipin/Desktop/globalbiz-ai-3/node_modules/.next 2-BJmUmdp9\")",
+      "Bash(wait)",
+      "Bash(node_modules/.bin/next build *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(npm ci *)"
     ]
   }
 }

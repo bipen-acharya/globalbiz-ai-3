@@ -205,6 +205,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeSucces
     form = await req.json() as ExistingBusinessFormData
   } catch { return jsonError('Invalid JSON body', 400) }
 
+  console.log('[analyze-existing] received:', form.business_name, '| location_type:', form.location_type, '| state:', form.state, '| suburb:', form.suburb)
+
   // 2. Validate required fields
   if (!form.business_name?.trim()) return jsonError('business_name is required', 422)
   if (!form.business_type?.trim()) return jsonError('business_type is required', 422)

@@ -6,8 +6,10 @@ import Link from 'next/link'
 import {
   ArrowLeft,
   ArrowRight,
+  CheckCircle,
   ChevronDown,
   Globe,
+  Loader2,
   MapPin,
 } from 'lucide-react'
 import { AddressPicker } from '@/components/AddressPicker'
@@ -20,9 +22,10 @@ const TEMP_REPORT_KEY = 'globalbiz_temp_report'
 const TEAM_SIZE_OPTIONS = ['Solo', '2–5', '6–20', '20+'] as const
 const LAUNCH_OPTIONS    = ['Within 3 months', '3–6 months', '6–12 months', '1+ year'] as const
 const BUDGET_OPTIONS    = ['Under $5K', '$5K–$20K', '$20K–$50K', '$50K–$100K', '$100K+'] as const
-const GOAL_OPTIONS      = ['Launch new business', 'Grow existing business', 'Validate idea'] as const
 const PRICE_OPTIONS     = ['Under $15', '$15–$50', '$50–$150', '$150–$500', '$500+', 'Custom quote'] as const
 const RADIUS_OPTIONS    = [5, 10, 20, 50] as const
+
+const AU_STATES = ['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'] as const
 
 const BUSINESS_CATEGORIES = [
   'Café / Coffee shop', 'Restaurant / Takeaway', 'Bakery', 'Bar / Pub', 'Food truck',
@@ -64,13 +67,14 @@ interface FormState {
   // Online
   websiteUrl:       string
   googleBizUrl:     string
+  country:          string
+  onlineState:      string
   // Common
   targetCustomers:  string
   teamSize:         string
   launchTimeframe:  string
   budgetRange:      string
   avgPriceRange:    string
-  goal:             string
 }
 
 const DEFAULT_FORM: FormState = {
@@ -82,12 +86,13 @@ const DEFAULT_FORM: FormState = {
   radiusKm:         10,
   websiteUrl:       '',
   googleBizUrl:     '',
+  country:          'Australia',
+  onlineState:      'NSW',
   targetCustomers:  '',
   teamSize:         'Solo',
   launchTimeframe:  '3–6 months',
   budgetRange:      '$5K–$20K',
   avgPriceRange:    '$15–$50',
-  goal:             'Launch new business',
 }
 
 // ─── Loading overlay ──────────────────────────────────────────────────────────
@@ -119,14 +124,42 @@ function LoadingOverlay() {
 export default function AnalyzePage() {
   const router = useRouter()
 
-  const [form,       setForm]       = useState<FormState>(DEFAULT_FORM)
-  const [errors,     setErrors]     = useState<Errors>({})
-  const [submitting, setSubmitting] = useState(false)
+  const [form,        setForm]        = useState<FormState>(DEFAULT_FORM)
+  const [errors,      setErrors]      = useState<Errors>({})
+  const [submitting,  setSubmitting]  = useState(false)
+  const [scraping,    setScraping]    = useState(false)
+  const [scrapeBanner, setScrapeBanner] = useState(false)
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm(f => ({ ...f, [key]: value }))
 
-  // ── Validation ───────────────────────────────────────────────────────────────
+  // ── Website scraping on blur ──────────────────────────────────────────────
+  async function handleWebsiteBlur() {
+    if (!form.websiteUrl.trim() || scraping) return
+    setScraping(true)
+    try {
+      const res = await fetch('/api/scrape-website', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ url: form.websiteUrl }),
+      })
+      const data = await res.json()
+      if (data.success && data.data) {
+        const d = data.data
+        setForm(f => ({
+          ...f,
+          businessName:     f.businessName     || d.businessName     || f.businessName,
+          description:      f.description      || d.description      || f.description,
+          businessCategory: f.businessCategory || d.category         || f.businessCategory,
+          targetCustomers:  f.targetCustomers  || d.targetCustomers  || f.targetCustomers,
+        }))
+        setScrapeBanner(true)
+      }
+    } catch {}
+    setScraping(false)
+  }
+
+  // ── Validation ──────────────────────────────────────────────────────────────
   function validate(): Errors {
     const e: Errors = {}
     if (!form.businessCategory)   e.businessCategory = 'Choose a business category.'
@@ -143,16 +176,16 @@ export default function AnalyzePage() {
   function buildPayload() {
     const isOnline = form.businessType === 'online'
     const budget   = budgetToNumber(form.budgetRange)
-    const goalMode = form.goal === 'Grow existing business' ? 'grow_existing' : 'start_new'
 
     return {
-      user_goal_mode:              goalMode,
+      user_goal_mode:              'start_new',
       business_name:               form.businessName || 'My Business',
       business_concept:            form.description,
       products_services:           form.description,
       business_type:               form.businessCategory || 'Other',
+      business_type_other:         form.description || '',
       business_model_type:         form.businessType,
-      state:                       form.place?.state ?? 'NSW',
+      state:                       isOnline ? (form.onlineState || 'NSW') : (form.place?.state ?? 'NSW'),
       suburb:                      isOnline ? '' : (form.place?.suburb ?? ''),
       city:                        isOnline ? '' : (form.place?.suburb ?? ''),
       postcode:                    form.place?.postcode ?? '',
@@ -162,7 +195,7 @@ export default function AnalyzePage() {
       website_url:                 form.websiteUrl,
       google_business_profile_url: form.googleBizUrl,
       delivery_coverage:           isOnline ? 'Australia-wide' : '',
-      target_market:               isOnline ? 'Australia' : '',
+      target_market:               isOnline ? form.country || 'Australia' : '',
       target_customers:            form.targetCustomers ? [form.targetCustomers] : ['General public'],
       staff_count:                 form.teamSize === 'Solo' ? 1 : form.teamSize === '2–5' ? 3 : form.teamSize === '6–20' ? 10 : 25,
       startup_budget:              String(budget),
@@ -172,10 +205,10 @@ export default function AnalyzePage() {
       growth_goal:                 'Grow revenue',
       break_even_expectation:      '12–18 months',
       risk_tolerance:              'medium',
-      current_monthly_revenue:     goalMode === 'grow_existing' ? String(budget / 12) : '',
-      current_challenges:          goalMode === 'grow_existing' ? ['Revenue growth'] : [],
-      growth_strategy_type:        goalMode === 'grow_existing' ? 'Digital expansion' : '',
-      current_location_suburb:     isOnline ? '' : (form.place?.suburb ?? ''),
+      current_monthly_revenue:     '',
+      current_challenges:          [],
+      growth_strategy_type:        '',
+      current_location_suburb:     isOnline ? 'Online' : (form.place?.suburb ?? ''),
     }
   }
 
@@ -193,7 +226,7 @@ export default function AnalyzePage() {
       })
       const data = await res.json()
       if (!res.ok || !data.success) {
-        setErrors({ description: data.error ?? 'Something went wrong. Please try again.' })
+        setErrors({ _apiError: data.error ?? 'Something went wrong. Please try again.' })
         setSubmitting(false)
         return
       }
@@ -207,7 +240,7 @@ export default function AnalyzePage() {
       }
       router.push(`/report/${data.reportId}`)
     } catch {
-      setErrors({ description: 'Network error. Please try again.' })
+      setErrors({ _apiError: 'Network error. Please try again.' })
       setSubmitting(false)
     }
   }
@@ -239,9 +272,9 @@ export default function AnalyzePage() {
           <p className="mt-2 text-slate-500 text-sm">We&apos;ll scan the market and generate a 90-day action plan.</p>
         </div>
 
-        {/* ── Section 1: Business basics ── */}
+        {/* ── Step 1: Business basics ── */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="font-display text-lg font-semibold text-slate-900 mb-5">Your business</h2>
+          <h2 className="font-display text-lg font-semibold text-slate-900 mb-5">Step 1 — Business basics</h2>
           <div className="space-y-5">
 
             {/* Name */}
@@ -314,70 +347,127 @@ export default function AnalyzePage() {
                 </button>
               </div>
             </div>
-
-            {/* Physical — Google Maps address picker */}
-            {form.businessType === 'physical' && (
-              <div className="space-y-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
-                <div>
-                  <label className="ui-label">Business address *</label>
-                  <AddressPicker
-                    onSelect={p => set('place', p)}
-                    onClear={() => set('place', null)}
-                    selected={form.place}
-                    error={errors.place}
-                  />
-                </div>
-
-                <div>
-                  <label className="ui-label">Competitor search radius</label>
-                  <div className="flex gap-2 flex-wrap">
-                    {RADIUS_OPTIONS.map(r => (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => set('radiusKm', r)}
-                        className={form.radiusKm === r ? 'ui-chip-selected' : 'ui-chip'}
-                      >
-                        {r}km
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Online — URL fields */}
-            {form.businessType === 'online' && (
-              <div className="space-y-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
-                <div>
-                  <label className="ui-label">Website URL *</label>
-                  <input
-                    type="url"
-                    className={`form-input ${errors.websiteUrl ? 'border-red-300' : ''}`}
-                    placeholder="https://yourbusiness.com.au"
-                    value={form.websiteUrl}
-                    onChange={e => set('websiteUrl', e.target.value)}
-                  />
-                  {errors.websiteUrl && <p className="mt-1 text-xs text-red-600">{errors.websiteUrl}</p>}
-                </div>
-                <div>
-                  <label className="ui-label">Google Business Profile URL (optional)</label>
-                  <input
-                    type="url"
-                    className="form-input"
-                    placeholder="https://g.page/your-business"
-                    value={form.googleBizUrl}
-                    onChange={e => set('googleBizUrl', e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* ── Section 2: Customers & goals ── */}
+        {/* ── Step 2: Location (conditional) ── */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="font-display text-lg font-semibold text-slate-900 mb-5">Customers &amp; goals</h2>
+          <h2 className="font-display text-lg font-semibold text-slate-900 mb-5">Step 2 — Location</h2>
+
+          {form.businessType === 'physical' && (
+            <div className="space-y-4">
+              <div>
+                <label className="ui-label">Business address *</label>
+                <AddressPicker
+                  onSelect={p => set('place', p)}
+                  onClear={() => set('place', null)}
+                  selected={form.place}
+                  error={errors.place}
+                />
+              </div>
+
+              <div>
+                <p className="ui-label mb-2">We&apos;ll find nearby competitors within this radius</p>
+                <div className="flex gap-2 flex-wrap">
+                  {RADIUS_OPTIONS.map(r => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => set('radiusKm', r)}
+                      className={form.radiusKm === r ? 'ui-chip-selected' : 'ui-chip'}
+                    >
+                      {r}km
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {form.businessType === 'online' && (
+            <div className="space-y-4">
+              {/* Scrape banner */}
+              {scrapeBanner && (
+                <div className="flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                  <CheckCircle size={15} className="mt-0.5 flex-shrink-0" />
+                  We found info about your business — feel free to edit any details
+                </div>
+              )}
+
+              <div>
+                <label className="ui-label">Your business website *</label>
+                <div className="relative">
+                  <input
+                    type="url"
+                    className={`form-input ${errors.websiteUrl ? 'border-red-300' : ''} ${scraping ? 'pr-10' : ''}`}
+                    placeholder="https://yourbusiness.com.au"
+                    value={form.websiteUrl}
+                    onChange={e => set('websiteUrl', e.target.value)}
+                    onBlur={handleWebsiteBlur}
+                  />
+                  {scraping && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs text-slate-400">
+                      <Loader2 size={14} className="animate-spin" />
+                      Analysing your website…
+                    </div>
+                  )}
+                </div>
+                {errors.websiteUrl && <p className="mt-1 text-xs text-red-600">{errors.websiteUrl}</p>}
+              </div>
+
+              <div>
+                <label className="ui-label">Google Business Profile URL (optional)</label>
+                <input
+                  type="url"
+                  className="form-input"
+                  placeholder="https://g.page/your-business"
+                  value={form.googleBizUrl}
+                  onChange={e => set('googleBizUrl', e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="ui-label">Country</label>
+                  <div className="relative">
+                    <select
+                      className="form-input appearance-none pr-10"
+                      value={form.country}
+                      onChange={e => set('country', e.target.value)}
+                    >
+                      <option value="Australia">Australia</option>
+                      <option value="New Zealand">New Zealand</option>
+                      <option value="United States">United States</option>
+                      <option value="United Kingdom">United Kingdom</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
+                </div>
+
+                {form.country === 'Australia' && (
+                  <div>
+                    <label className="ui-label">State</label>
+                    <div className="relative">
+                      <select
+                        className="form-input appearance-none pr-10"
+                        value={form.onlineState}
+                        onChange={e => set('onlineState', e.target.value)}
+                      >
+                        {AU_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Step 3: Customers & goals ── */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="font-display text-lg font-semibold text-slate-900 mb-5">Step 3 — Customers &amp; goals</h2>
           <div className="space-y-5">
 
             <div>
@@ -452,39 +542,16 @@ export default function AnalyzePage() {
                 ))}
               </div>
             </div>
-
-            <div>
-              <label className="ui-label">Business goal</label>
-              <div className="space-y-2">
-                {GOAL_OPTIONS.map(g => (
-                  <label
-                    key={g}
-                    className="flex items-center gap-3 cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 hover:border-blue-200 hover:bg-blue-50 transition-all has-[:checked]:border-blue-300 has-[:checked]:bg-blue-50"
-                  >
-                    <input
-                      type="radio"
-                      name="goal"
-                      value={g}
-                      checked={form.goal === g}
-                      onChange={() => set('goal', g)}
-                      className="text-blue-600"
-                    />
-                    {g}
-                  </label>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
 
         {/* API error banner */}
-        {errors.description && errors.description.includes('error') && (
+        {errors._apiError && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {errors.description}
+            {errors._apiError}
           </div>
         )}
 
-        {/* Generate Report button — single step, no page 2 */}
         <button
           type="button"
           onClick={submit}
@@ -494,7 +561,9 @@ export default function AnalyzePage() {
         </button>
 
         <p className="text-center text-xs text-slate-400">
-          We&apos;ll automatically find competitors using Google Maps near your address.
+          {form.businessType === 'physical'
+            ? 'We\'ll automatically find competitors using Google Maps near your address.'
+            : 'We\'ll analyse your website and find similar businesses online.'}
         </p>
       </div>
     </div>
