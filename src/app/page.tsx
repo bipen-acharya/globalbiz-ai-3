@@ -115,8 +115,18 @@ export default function LandingPage() {
                   <Lightbulb size={18} />
                   Explore business ideas
                 </button>
-              </div>
 
+                {/* Button 4 — Tertiary */}
+                <button
+                  type="button"
+                  onClick={() => router.push('/explore')}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-6 py-4 font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-200 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                >
+                  <MapPin size={18} />
+                  Find business in my area
+                </button>
+              </div>
+             
               <p className="mt-6 text-sm text-slate-400 animate-fade-up delay-400">No account needed · suburb and digital growth analysis</p>
 
               <div className="mt-5 flex flex-wrap gap-2">
