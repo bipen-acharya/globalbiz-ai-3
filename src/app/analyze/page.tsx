@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -132,8 +132,17 @@ function LoadingOverlay() {
 
 export default function AnalyzePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
-  const [form,        setForm]        = useState<FormState>(DEFAULT_FORM)
+  const [form,        setForm]        = useState<FormState>(() => {
+    const idea     = searchParams.get('idea')     || ''
+    const category = searchParams.get('category') || ''
+    return {
+      ...DEFAULT_FORM,
+      ...(idea     && { businessName: idea }),
+      ...(category && { businessCategory: category }),
+    }
+  })
   const [errors,      setErrors]      = useState<Errors>({})
   const [submitting,  setSubmitting]  = useState(false)
   const [scraping,    setScraping]    = useState(false)
