@@ -14,6 +14,7 @@ export interface PlaceResult {
   lng:              number
 }
 
+
 interface AddressPickerProps {
   onSelect:  (p: PlaceResult) => void
   onClear:   () => void
