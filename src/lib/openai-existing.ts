@@ -1,4 +1,4 @@
-import OpenAI from 'openai'
+import { generateJSON } from '@/services/aiClient'
 import type {
   AnalysisResult,
   NearbyCompetitorData,
@@ -11,12 +11,6 @@ import type {
 } from '@/types'
 import type { ScoringOutput } from './scoring-engine'
 import { priceLevelLabel } from './utils'
-
-function getClient(): OpenAI {
-  const k = process.env.OPENAI_API_KEY
-  if (!k) throw new Error('OPENAI_API_KEY not set')
-  return new OpenAI({ apiKey: k })
-}
 
 // ── Signal-driven turnaround text ─────────────────────────────────────────────
 function buildTurnaroundContent(
@@ -465,17 +459,11 @@ Return ONLY valid JSON with this exact structure:
 }`
 
   try {
-    const client = getClient()
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
+    const parsed = await generateJSON<Partial<AnalysisResult>>(prompt, {
+      tier: 'smart',
       temperature: 0.4,
-      max_tokens: 3000,
+      maxTokens: 3000,
     })
-
-    const raw = response.choices[0]?.message?.content ?? '{}'
-    const parsed = JSON.parse(raw)
 
     const fallback = buildExistingFallbackAnalysis(data, nearby, scores)
 
@@ -508,7 +496,7 @@ Return ONLY valid JSON with this exact structure:
       important_assumptions: parsed.important_assumptions?.length ? parsed.important_assumptions : fallback.important_assumptions,
     }
   } catch (err) {
-    console.error('[openai-existing] OpenAI error, falling back:', err)
+    console.error('[analysis-existing] AI error, falling back:', err)
     return buildExistingFallbackAnalysis(data, nearby, scores)
   }
 }

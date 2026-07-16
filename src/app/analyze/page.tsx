@@ -4,18 +4,11 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle,
-  ChevronDown,
-  Globe,
-  Loader2,
-  MapPin,
+  ArrowLeft, ArrowUpRight, ChevronDown, Globe, Loader2, MapPin,
 } from 'lucide-react'
 import { AddressPicker } from '@/components/AddressPicker'
 import type { PlaceResult } from '@/components/AddressPicker'
-
-// ─── Constants ────────────────────────────────────────────────────────────────
+import LoadingOverlay from '@/components/analyze/LoadingOverlay'
 
 const TEMP_REPORT_KEY = 'globalbiz_temp_report'
 
@@ -41,13 +34,6 @@ const TARGET_CUSTOMER_OPTIONS = [
   'Local residents', 'Online customers', 'Businesses (B2B)', 'Other',
 ] as const
 
-const LOADING_STAGES = [
-  { label: 'Scanning competitors…',      sub: 'Pulling real Google Maps data and competitor signals.' },
-  { label: 'Analysing demand…',          sub: 'Measuring market demand, audience fit, and market gaps.' },
-  { label: 'Generating insights…',       sub: 'Scoring viability, differentiation, and expansion readiness.' },
-  { label: 'Building your action plan…', sub: 'Adding Australian setup, permits, and 90-day guidance.' },
-]
-
 function budgetToNumber(b: string): number {
   const map: Record<string, number> = {
     'Under $5K': 4000, '$5K–$20K': 12000, '$20K–$50K': 35000,
@@ -56,119 +42,72 @@ function budgetToNumber(b: string): number {
   return map[b] ?? 10000
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type BusinessType = 'physical' | 'online'
 type Errors = Record<string, string>
 
 interface FormState {
-  businessName:        string
-  description:         string
-  businessType:        BusinessType
-  businessCategory:    string
-  customBusinessType:  string
-  // Physical — Google Maps address picker
-  place:               PlaceResult | null
-  radiusKm:            number
-  // Online
-  websiteUrl:          string
-  googleBizUrl:        string
-  country:             string
-  onlineState:         string
-  // Common
-  targetCustomers:     string[]
+  businessName: string
+  description: string
+  businessType: BusinessType
+  businessCategory: string
+  customBusinessType: string
+  place: PlaceResult | null
+  radiusKm: number
+  websiteUrl: string
+  googleBizUrl: string
+  country: string
+  onlineState: string
+  targetCustomers: string[]
   customTargetCustomer: string
-  teamSize:            string
-  launchTimeframe:     string
-  budgetRange:         string
-  avgPriceRange:       string
+  teamSize: string
+  launchTimeframe: string
+  budgetRange: string
+  avgPriceRange: string
 }
 
 const DEFAULT_FORM: FormState = {
-  businessName:        '',
-  description:         '',
-  businessType:        'physical',
-  businessCategory:    '',
-  customBusinessType:  '',
-  place:               null,
-  radiusKm:            10,
-  websiteUrl:          '',
-  googleBizUrl:        '',
-  country:             'Australia',
-  onlineState:         'NSW',
-  targetCustomers:     [],
-  customTargetCustomer: '',
-  teamSize:            'Solo',
-  launchTimeframe:     '3–6 months',
-  budgetRange:         '$5K–$20K',
-  avgPriceRange:       '$15–$50',
+  businessName: '', description: '', businessType: 'physical',
+  businessCategory: '', customBusinessType: '',
+  place: null, radiusKm: 10,
+  websiteUrl: '', googleBizUrl: '', country: 'Australia', onlineState: 'NSW',
+  targetCustomers: [], customTargetCustomer: '',
+  teamSize: 'Solo', launchTimeframe: '3–6 months',
+  budgetRange: '$5K–$20K', avgPriceRange: '$15–$50',
 }
-
-// ─── Loading overlay ──────────────────────────────────────────────────────────
-
-function LoadingOverlay() {
-  const [idx, setIdx] = useState(0)
-  useEffect(() => {
-    const t = setInterval(() => setIdx(i => Math.min(i + 1, LOADING_STAGES.length - 1)), 2500)
-    return () => clearInterval(t)
-  }, [])
-  const stage = LOADING_STAGES[idx]
-  return (
-    <div className="loading-overlay">
-      <div className="mb-8 text-center">
-        <div className="mb-6 mx-auto w-12 h-12 loading-spinner" />
-        <h2 className="font-display text-2xl font-bold text-slate-900 mb-2">{stage.label}</h2>
-        <p className="text-slate-500 text-sm max-w-xs mx-auto">{stage.sub}</p>
-      </div>
-      <div className="w-64 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-        <div className="loading-progress-bar h-full rounded-full" />
-      </div>
-      <p className="mt-4 text-xs text-slate-400">This takes 10–20 seconds</p>
-    </div>
-  )
-}
-
-// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AnalyzePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [form,        setForm]        = useState<FormState>(() => {
-    const idea     = searchParams.get('idea')     || ''
-    const category = searchParams.get('category') || ''
-    return {
-      ...DEFAULT_FORM,
-      ...(idea     && { businessName: idea }),
-      ...(category && { businessCategory: category }),
-    }
-  })
-  const [errors,      setErrors]      = useState<Errors>({})
-  const [submitting,  setSubmitting]  = useState(false)
-  const [scraping,    setScraping]    = useState(false)
+  const [form, setForm] = useState<FormState>(() => ({
+    ...DEFAULT_FORM,
+    ...(searchParams.get('idea')     && { businessName: searchParams.get('idea')! }),
+    ...(searchParams.get('category') && { businessCategory: searchParams.get('category')! }),
+  }))
+  const [errors, setErrors] = useState<Errors>({})
+  const [submitting, setSubmitting] = useState(false)
+  const [scraping, setScraping] = useState(false)
   const [scrapeBanner, setScrapeBanner] = useState(false)
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm(f => ({ ...f, [key]: value }))
 
-  // ── Website scraping on blur ──────────────────────────────────────────────
   async function handleWebsiteBlur() {
     if (!form.websiteUrl.trim() || scraping) return
     setScraping(true)
     try {
       const res = await fetch('/api/scrape-website', {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ url: form.websiteUrl }),
+        body: JSON.stringify({ url: form.websiteUrl }),
       })
       const data = await res.json()
       if (data.success && data.data) {
-        const d = data.data
         setForm(f => ({
           ...f,
-          businessName:     f.businessName     || d.businessName     || f.businessName,
-          description:      f.description      || d.description      || f.description,
-          businessCategory: f.businessCategory || d.category         || f.businessCategory,
+          businessName:     f.businessName     || data.data.businessName || f.businessName,
+          description:      f.description      || data.data.description  || f.description,
+          businessCategory: f.businessCategory || data.data.category     || f.businessCategory,
         }))
         setScrapeBanner(true)
       }
@@ -176,7 +115,6 @@ export default function AnalyzePage() {
     setScraping(false)
   }
 
-  // ── Validation ──────────────────────────────────────────────────────────────
   function validate(): Errors {
     const e: Errors = {}
     if (!form.businessCategory) e.businessCategory = 'Choose a business category.'
@@ -194,68 +132,77 @@ export default function AnalyzePage() {
     return e
   }
 
-  // ── API payload ──────────────────────────────────────────────────────────────
   function buildPayload() {
     const isOnline = form.businessType === 'online'
-    const budget   = budgetToNumber(form.budgetRange)
+    const budget = budgetToNumber(form.budgetRange)
 
     return {
-      user_goal_mode:              'start_new',
-      business_name:               form.businessName || 'My Business',
-      business_concept:            form.description,
-      products_services:           form.description,
-      business_type:               form.businessCategory === 'Others'
-                                     ? (form.customBusinessType || 'Other')
-                                     : (form.businessCategory || 'Other'),
-      business_type_other:         form.businessCategory === 'Others' ? form.customBusinessType : '',
-      business_model_type:         form.businessType,
-      state:                       isOnline ? (form.onlineState || 'NSW') : (form.place?.state ?? 'NSW'),
-      suburb:                      isOnline ? '' : (form.place?.suburb ?? ''),
-      city:                        isOnline ? '' : (form.place?.suburb ?? ''),
-      postcode:                    form.place?.postcode ?? '',
-      lat:                         form.place?.lat ?? null,
-      lng:                         form.place?.lng ?? null,
-      radius_km:                   form.radiusKm,
-      website_url:                 form.websiteUrl,
+      user_goal_mode: 'start_new',
+      business_name: form.businessName || 'My Business',
+      business_concept: form.description,
+      products_services: form.description,
+      business_type: form.businessCategory === 'Others'
+        ? (form.customBusinessType || 'Other')
+        : (form.businessCategory || 'Other'),
+      business_type_other: form.businessCategory === 'Others' ? form.customBusinessType : '',
+      business_model_type: form.businessType,
+      state: isOnline ? (form.onlineState || 'NSW') : (form.place?.state ?? 'NSW'),
+      suburb: isOnline ? '' : (form.place?.suburb ?? ''),
+      city: isOnline ? '' : (form.place?.suburb ?? ''),
+      postcode: form.place?.postcode ?? '',
+      lat: form.place?.lat ?? null,
+      lng: form.place?.lng ?? null,
+      radius_km: form.radiusKm,
+      website_url: form.websiteUrl,
       google_business_profile_url: form.googleBizUrl,
-      delivery_coverage:           isOnline ? 'Australia-wide' : '',
-      target_market:               isOnline ? form.country || 'Australia' : '',
-      target_customers:            form.targetCustomers.length > 0
-                                     ? form.targetCustomers.map(c =>
-                                         c === 'Other' && form.customTargetCustomer
-                                           ? form.customTargetCustomer
-                                           : c
-                                       )
-                                     : ['General public'],
-      staff_count:                 form.teamSize === 'Solo' ? 1 : form.teamSize === '2–5' ? 3 : form.teamSize === '6–20' ? 10 : 25,
-      startup_budget:              String(budget),
-      expected_revenue:            String(Math.round(budget * 0.25)),
-      avg_price_range:             form.avgPriceRange || '$15–$50',
-      launch_timeline:             form.launchTimeframe || '3–6 months',
-      growth_goal:                 'Grow revenue',
-      break_even_expectation:      '12–18 months',
-      risk_tolerance:              'medium',
-      current_monthly_revenue:     '',
-      current_challenges:          [],
-      growth_strategy_type:        '',
-      current_location_suburb:     isOnline ? 'Online' : (form.place?.suburb ?? ''),
+      delivery_coverage: isOnline ? 'Australia-wide' : '',
+      target_market: isOnline ? form.country || 'Australia' : '',
+      target_customers: form.targetCustomers.length > 0
+        ? form.targetCustomers.map(c =>
+            c === 'Other' && form.customTargetCustomer ? form.customTargetCustomer : c)
+        : ['General public'],
+      staff_count: form.teamSize === 'Solo' ? 1 : form.teamSize === '2–5' ? 3 : form.teamSize === '6–20' ? 10 : 25,
+      startup_budget: String(budget),
+      expected_revenue: String(Math.round(budget * 0.25)),
+      avg_price_range: form.avgPriceRange || '$15–$50',
+      launch_timeline: form.launchTimeframe || '3–6 months',
+      growth_goal: 'Grow revenue',
+      break_even_expectation: '12–18 months',
+      risk_tolerance: 'medium',
+      current_monthly_revenue: '',
+      current_challenges: [],
+      growth_strategy_type: '',
+      current_location_suburb: isOnline ? 'Online' : (form.place?.suburb ?? ''),
     }
   }
 
-  // ── Submit ───────────────────────────────────────────────────────────────────
   async function submit() {
     const e = validate()
-    if (Object.keys(e).length > 0) { setErrors(e); return }
+    if (Object.keys(e).length > 0) {
+      setErrors(e)
+      // scroll to first error
+      requestAnimationFrame(() => document.querySelector('[data-error="true"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+      return
+    }
 
     setSubmitting(true)
     try {
-      const res  = await fetch('/api/analyze', {
-        method:  'POST',
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(buildPayload()),
+        body: JSON.stringify(buildPayload()),
       })
       const data = await res.json()
       if (!res.ok || !data.success) {
+        if (data.error === 'TOTAL_LIMIT_REACHED') {
+          router.push('/coming-soon')
+          return
+        }
+        if (data.error === 'DAILY_LIMIT_REACHED') {
+          setErrors({ _apiError: 'Today\'s free report limit has been reached. Please try again tomorrow.' })
+          setSubmitting(false)
+          return
+        }
         setErrors({ _apiError: data.error ?? 'Something went wrong. Please try again.' })
         setSubmitting(false)
         return
@@ -278,372 +225,334 @@ export default function AnalyzePage() {
   if (submitting) return <LoadingOverlay />
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen" style={{ background: 'var(--ink-0)', color: 'var(--paper)' }}>
       {/* Nav */}
-      <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">
-          <ArrowLeft size={16} /> Home
-        </Link>
-        <span className="font-display font-bold text-slate-900">
-          GlobalBiz <span className="gradient-text">AI</span>
-        </span>
-        <div className="w-20" />
+      <nav className="nav-blur sticky top-0 z-40">
+        <div className="container-wide flex items-center justify-between py-5">
+          <Link href="/" className="flex items-center gap-2 text-sm transition-colors" style={{ color: 'var(--paper-3)' }}>
+            <ArrowLeft size={16} /> Back
+          </Link>
+          <Link href="/" className="flex items-center gap-3">
+            <span className="block h-2 w-2 rounded-full" style={{ background: 'var(--gold)' }} />
+            <span className="font-display text-lg">GlobalBiz <span style={{ color: "var(--gold)" }}>AI</span></span>
+          </Link>
+          <div className="w-12" />
+        </div>
       </nav>
 
-      <div className="mx-auto max-w-2xl px-4 py-10 space-y-6">
+      <main className="container-text pt-12 pb-24">
+        <header className="anim-fade-up">
+          <div className="eyebrow">Founder report · Free</div>
+          <h1 className="display mt-6" style={{ fontSize: 'var(--t-h1)' }}>
+            Tell us about<br /><em>the business</em>.
+          </h1>
+          <p className="mt-5 max-w-lg" style={{ color: 'var(--paper-2)' }}>
+            We&apos;ll pull real competitor data, run feasibility scoring, and return a full report in about three minutes.
+          </p>
+        </header>
 
-        {/* Header */}
-        <div className="text-center">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-xs font-medium text-blue-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-            Free founder report · No account needed
-          </div>
-          <h1 className="font-display text-3xl font-bold text-slate-900">Tell us about your business</h1>
-          <p className="mt-2 text-slate-500 text-sm">We&apos;ll scan the market and generate a 90-day action plan.</p>
-        </div>
-
-        {/* ── Step 1: Business basics ── */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="font-display text-lg font-semibold text-slate-900 mb-5">Step 1 — Business basics</h2>
-          <div className="space-y-5">
-
-            {/* Name */}
-            <div>
-              <label className="ui-label">Business name (optional)</label>
+        <div className="mt-12 space-y-10">
+          {/* ── Section 01: Basics ── */}
+          <Section number="01" title="Business basics">
+            <Field label="Business name" hint="Optional">
               <input
-                type="text"
-                className="form-input"
+                className="input"
                 placeholder="e.g. Adelaide Bread Co."
                 value={form.businessName}
                 onChange={e => set('businessName', e.target.value)}
               />
-            </div>
+            </Field>
 
-            {/* Category */}
-            <div>
-              <label className="ui-label">Business category *</label>
+            <Field label="Category" required error={errors.businessCategory}>
               <div className="relative">
                 <select
-                  className={`form-input appearance-none pr-10 ${errors.businessCategory ? 'border-red-300' : ''}`}
+                  className="input pr-10 appearance-none"
                   value={form.businessCategory}
                   onChange={e => set('businessCategory', e.target.value)}
+                  data-error={!!errors.businessCategory}
                 >
                   <option value="">Select a category…</option>
                   {BUSINESS_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
-                <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <ChevronDown size={16} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--paper-3)' }} />
               </div>
-              {errors.businessCategory && <p className="mt-1 text-xs text-red-600">{errors.businessCategory}</p>}
               {form.businessCategory === 'Others' && (
-                <div className="mt-3">
-                  <label htmlFor="customBusinessType" className="ui-label">Please specify your business type *</label>
-                  <input
-                    id="customBusinessType"
-                    type="text"
-                    className={`form-input ${errors.customBusinessType ? 'border-red-300' : ''}`}
-                    placeholder="e.g. Mobile food truck, Pop-up store…"
-                    value={form.customBusinessType}
-                    onChange={e => set('customBusinessType', e.target.value)}
-                    required
-                  />
-                  {errors.customBusinessType && <p className="mt-1 text-xs text-red-600">{errors.customBusinessType}</p>}
-                </div>
+                <input
+                  className="input mt-3"
+                  placeholder="e.g. Mobile food truck, Pop-up store…"
+                  value={form.customBusinessType}
+                  onChange={e => set('customBusinessType', e.target.value)}
+                  data-error={!!errors.customBusinessType}
+                />
               )}
-            </div>
+            </Field>
 
-            {/* Description */}
-            <div>
-              <label className="ui-label">What does your business do? *</label>
+            <Field label="What does the business do?" required error={errors.description}>
               <textarea
-                className={`form-input resize-none ${errors.description ? 'border-red-300' : ''}`}
                 rows={3}
-                placeholder="e.g. A specialty coffee shop focused on single-origin beans and fast weekday service for office workers."
+                className="input resize-none"
+                placeholder="A specialty coffee shop focused on single-origin beans and fast weekday service for office workers."
                 value={form.description}
                 onChange={e => set('description', e.target.value)}
+                data-error={!!errors.description}
               />
-              {errors.description && <p className="mt-1 text-xs text-red-600">{errors.description}</p>}
-            </div>
+            </Field>
 
-            {/* Business type toggle */}
-            <div>
-              <label className="ui-label">Business type *</label>
-              <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
-                <button
-                  type="button"
+            <Field label="Operating model" required>
+              <div className="grid grid-cols-2 gap-3">
+                <Toggle
+                  active={form.businessType === 'physical'}
                   onClick={() => set('businessType', 'physical')}
-                  className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all ${
-                    form.businessType === 'physical'
-                      ? 'bg-white text-blue-700 shadow-sm border border-blue-100'
-                      : 'text-slate-500 hover:text-slate-900'
-                  }`}
-                >
-                  <MapPin size={15} /> Physical / Local
-                </button>
-                <button
-                  type="button"
+                  icon={<MapPin size={16} />}
+                  label="Physical / Local"
+                />
+                <Toggle
+                  active={form.businessType === 'online'}
                   onClick={() => set('businessType', 'online')}
-                  className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all ${
-                    form.businessType === 'online'
-                      ? 'bg-white text-blue-700 shadow-sm border border-blue-100'
-                      : 'text-slate-500 hover:text-slate-900'
-                  }`}
-                >
-                  <Globe size={15} /> Online / Digital
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Step 2: Location (conditional) ── */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="font-display text-lg font-semibold text-slate-900 mb-5">Step 2 — Location</h2>
-
-          {form.businessType === 'physical' && (
-            <div className="space-y-4">
-              <div>
-                <label className="ui-label">Business address *</label>
-                <AddressPicker
-                  onSelect={p => set('place', p)}
-                  onClear={() => set('place', null)}
-                  selected={form.place}
-                  error={errors.place}
+                  icon={<Globe size={16} />}
+                  label="Online / Digital"
                 />
               </div>
+            </Field>
+          </Section>
 
-              <div>
-                <p className="ui-label mb-2">We&apos;ll find nearby competitors within this radius</p>
-                <div className="flex gap-2 flex-wrap">
-                  {RADIUS_OPTIONS.map(r => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => set('radiusKm', r)}
-                      className={form.radiusKm === r ? 'ui-chip-selected' : 'ui-chip'}
-                    >
-                      {r}km
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {form.businessType === 'online' && (
-            <div className="space-y-4">
-              {/* Scrape banner */}
-              {scrapeBanner && (
-                <div className="flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                  <CheckCircle size={15} className="mt-0.5 flex-shrink-0" />
-                  We found info about your business — feel free to edit any details
-                </div>
-              )}
-
-              <div>
-                <label className="ui-label">Your business website *</label>
-                <div className="relative">
-                  <input
-                    type="url"
-                    className={`form-input ${errors.websiteUrl ? 'border-red-300' : ''} ${scraping ? 'pr-10' : ''}`}
-                    placeholder="https://yourbusiness.com.au"
-                    value={form.websiteUrl}
-                    onChange={e => set('websiteUrl', e.target.value)}
-                    onBlur={handleWebsiteBlur}
+          {/* ── Section 02: Location ── */}
+          <Section number="02" title="Location">
+            {form.businessType === 'physical' && (
+              <>
+                <Field label="Business address" required error={errors.place}>
+                  <AddressPicker
+                    onSelect={p => set('place', p)}
+                    onClear={() => set('place', null)}
+                    selected={form.place}
+                    error={errors.place}
                   />
-                  {scraping && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs text-slate-400">
-                      <Loader2 size={14} className="animate-spin" />
-                      Analysing your website…
-                    </div>
-                  )}
-                </div>
-                {errors.websiteUrl && <p className="mt-1 text-xs text-red-600">{errors.websiteUrl}</p>}
-              </div>
+                </Field>
+                <Field label="Search radius for competitors">
+                  <ChipGroup
+                    options={RADIUS_OPTIONS.map(r => ({ label: `${r} km`, value: r }))}
+                    value={form.radiusKm}
+                    onChange={v => set('radiusKm', v)}
+                  />
+                </Field>
+              </>
+            )}
 
-              <div>
-                <label className="ui-label">Google Business Profile URL (optional)</label>
-                <input
-                  type="url"
-                  className="form-input"
-                  placeholder="https://g.page/your-business"
-                  value={form.googleBizUrl}
-                  onChange={e => set('googleBizUrl', e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="ui-label">Country</label>
-                  <div className="relative">
-                    <select
-                      className="form-input appearance-none pr-10"
-                      value={form.country}
-                      onChange={e => set('country', e.target.value)}
-                    >
-                      <option value="Australia">Australia</option>
-                      <option value="New Zealand">New Zealand</option>
-                      <option value="United States">United States</option>
-                      <option value="United Kingdom">United Kingdom</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  </div>
-                </div>
-
-                {form.country === 'Australia' && (
-                  <div>
-                    <label className="ui-label">State</label>
-                    <div className="relative">
-                      <select
-                        className="form-input appearance-none pr-10"
-                        value={form.onlineState}
-                        onChange={e => set('onlineState', e.target.value)}
-                      >
-                        {AU_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                      <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    </div>
+            {form.businessType === 'online' && (
+              <>
+                {scrapeBanner && (
+                  <div className="anim-fade-in flex items-start gap-3 rounded-xl border px-4 py-3 text-sm" style={{ borderColor: 'rgba(109,191,138,0.4)', background: 'rgba(109,191,138,0.08)', color: 'var(--ok)' }}>
+                    <span className="block h-1.5 w-1.5 mt-2 rounded-full" style={{ background: 'var(--ok)' }} />
+                    We read your website — feel free to edit the fields.
                   </div>
                 )}
-              </div>
-            </div>
-          )}
-        </div>
+                <Field label="Business website" required error={errors.websiteUrl}>
+                  <div className="relative">
+                    <input
+                      type="url"
+                      className="input"
+                      placeholder="https://yourbusiness.com.au"
+                      value={form.websiteUrl}
+                      onChange={e => set('websiteUrl', e.target.value)}
+                      onBlur={handleWebsiteBlur}
+                      data-error={!!errors.websiteUrl}
+                    />
+                    {scraping && (
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-xs" style={{ color: 'var(--paper-3)' }}>
+                        <Loader2 size={14} className="animate-spin" />
+                        Reading…
+                      </div>
+                    )}
+                  </div>
+                </Field>
+                <Field label="Google Business Profile" hint="Optional">
+                  <input
+                    type="url"
+                    className="input"
+                    placeholder="https://g.page/your-business"
+                    value={form.googleBizUrl}
+                    onChange={e => set('googleBizUrl', e.target.value)}
+                  />
+                </Field>
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Country">
+                    <SelectInput value={form.country} onChange={v => set('country', v)} options={['Australia', 'New Zealand', 'United States', 'United Kingdom', 'Other']} />
+                  </Field>
+                  {form.country === 'Australia' && (
+                    <Field label="State">
+                      <SelectInput value={form.onlineState} onChange={v => set('onlineState', v)} options={[...AU_STATES]} />
+                    </Field>
+                  )}
+                </div>
+              </>
+            )}
+          </Section>
 
-        {/* ── Step 3: Customers & goals ── */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="font-display text-lg font-semibold text-slate-900 mb-5">Step 3 — Customers &amp; goals</h2>
-          <div className="space-y-5">
-
-            <div>
-              <label className="ui-label">Target customers * <span className="normal-case font-normal text-slate-400">(select all that apply)</span></label>
-              <div className="flex flex-wrap gap-2">
-                {TARGET_CUSTOMER_OPTIONS.map(chip => {
-                  const selected = form.targetCustomers.includes(chip)
+          {/* ── Section 03: Customers & goals ── */}
+          <Section number="03" title="Customers & goals">
+            <Field label="Target customers" required hint="Select all that apply" error={errors.targetCustomers}>
+              <div className="flex flex-wrap gap-2" data-error={!!errors.targetCustomers}>
+                {TARGET_CUSTOMER_OPTIONS.map(opt => {
+                  const selected = form.targetCustomers.includes(opt)
                   return (
                     <button
-                      key={chip}
+                      key={opt}
                       type="button"
-                      onClick={() => {
-                        setForm(f => {
-                          const curr = f.targetCustomers
-                          return {
-                            ...f,
-                            targetCustomers: curr.includes(chip)
-                              ? curr.filter(c => c !== chip)
-                              : [...curr, chip],
-                          }
-                        })
-                      }}
-                      className={selected ? 'ui-chip-selected' : 'ui-chip'}
-                      style={selected ? { background: 'linear-gradient(135deg, #00c46a 0%, #00b8d9 100%)', border: 'none', color: '#fff', transform: 'scale(1.05)' } : {}}
+                      onClick={() => setForm(f => ({
+                        ...f,
+                        targetCustomers: f.targetCustomers.includes(opt)
+                          ? f.targetCustomers.filter(c => c !== opt)
+                          : [...f.targetCustomers, opt],
+                      }))}
+                      className={selected ? 'chip chip-active' : 'chip'}
                     >
-                      {chip}
+                      {opt}
                     </button>
                   )
                 })}
               </div>
-              {errors.targetCustomers && <p className="mt-1 text-xs text-red-600">{errors.targetCustomers}</p>}
               {form.targetCustomers.includes('Other') && (
-                <div className="mt-3">
-                  <label htmlFor="customTargetCustomer" className="ui-label">Please describe your target customers</label>
-                  <input
-                    id="customTargetCustomer"
-                    type="text"
-                    className={`form-input ${errors.customTargetCustomer ? 'border-red-300' : ''}`}
-                    placeholder="Please describe your target customers"
-                    value={form.customTargetCustomer}
-                    onChange={e => set('customTargetCustomer', e.target.value)}
-                  />
-                  {errors.customTargetCustomer && <p className="mt-1 text-xs text-red-600">{errors.customTargetCustomer}</p>}
-                </div>
+                <input
+                  className="input mt-4"
+                  placeholder="Describe your target customers"
+                  value={form.customTargetCustomer}
+                  onChange={e => set('customTargetCustomer', e.target.value)}
+                  data-error={!!errors.customTargetCustomer}
+                />
               )}
+            </Field>
+
+            <Field label="Average price per product / service">
+              <ChipGroup
+                options={PRICE_OPTIONS.map(p => ({ label: p, value: p }))}
+                value={form.avgPriceRange}
+                onChange={v => set('avgPriceRange', v)}
+              />
+            </Field>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Team size">
+                <SelectInput value={form.teamSize} onChange={v => set('teamSize', v)} options={[...TEAM_SIZE_OPTIONS]} />
+              </Field>
+              <Field label="Planned launch">
+                <SelectInput value={form.launchTimeframe} onChange={v => set('launchTimeframe', v)} options={[...LAUNCH_OPTIONS]} />
+              </Field>
             </div>
 
-            <div>
-              <label className="ui-label">Average price per product / service</label>
-              <div className="flex gap-2 flex-wrap">
-                {PRICE_OPTIONS.map(p => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => set('avgPriceRange', p)}
-                    className={form.avgPriceRange === p ? 'ui-chip-selected' : 'ui-chip'}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <Field label="Budget range">
+              <ChipGroup
+                options={BUDGET_OPTIONS.map(b => ({ label: b, value: b }))}
+                value={form.budgetRange}
+                onChange={v => set('budgetRange', v)}
+              />
+            </Field>
+          </Section>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="ui-label">Team size</label>
-                <div className="relative">
-                  <select
-                    className="form-input appearance-none pr-10"
-                    value={form.teamSize}
-                    onChange={e => set('teamSize', e.target.value)}
-                  >
-                    {TEAM_SIZE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                  <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
-              <div>
-                <label className="ui-label">Planned launch</label>
-                <div className="relative">
-                  <select
-                    className="form-input appearance-none pr-10"
-                    value={form.launchTimeframe}
-                    onChange={e => set('launchTimeframe', e.target.value)}
-                  >
-                    {LAUNCH_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                  <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
+          {/* API error */}
+          {errors._apiError && (
+            <div className="rounded-xl border px-5 py-4 text-sm anim-fade-in" style={{ borderColor: 'rgba(226,107,107,0.4)', background: 'rgba(226,107,107,0.08)', color: 'var(--danger)' }}>
+              {errors._apiError}
             </div>
+          )}
 
-            <div>
-              <label className="ui-label">Budget range</label>
-              <div className="flex gap-2 flex-wrap">
-                {BUDGET_OPTIONS.map(b => (
-                  <button
-                    key={b}
-                    type="button"
-                    onClick={() => set('budgetRange', b)}
-                    className={form.budgetRange === b ? 'ui-chip-selected' : 'ui-chip'}
-                  >
-                    {b}
-                  </button>
-                ))}
-              </div>
-            </div>
+          {/* Submit */}
+          <div className="pt-4">
+            <button onClick={submit} className="btn btn-gold w-full justify-center py-4 text-base">
+              Generate the report <ArrowUpRight size={18} />
+            </button>
+            <p className="mt-4 text-center text-xs" style={{ color: 'var(--paper-4)' }}>
+              {form.businessType === 'physical'
+                ? 'We&apos;ll find real competitors via Google Maps within your radius.'
+                : 'We&apos;ll analyse your website and benchmark against similar businesses.'}
+            </p>
           </div>
         </div>
+      </main>
+    </div>
+  )
+}
 
-        {/* API error banner */}
-        {errors._apiError && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {errors._apiError}
-          </div>
-        )}
+// ─────────────────────────────────────────────────────────────────────────────
+// Internal components
+// ─────────────────────────────────────────────────────────────────────────────
 
-        <button
-          type="button"
-          onClick={submit}
-          className="w-full ui-primary-btn py-4 text-base rounded-xl"
-        >
-          Generate Report <ArrowRight size={18} />
-        </button>
-
-        <p className="text-center text-xs text-slate-400">
-          {form.businessType === 'physical'
-            ? 'We\'ll automatically find competitors using Google Maps near your address.'
-            : 'We\'ll analyse your website and find similar businesses online.'}
-        </p>
+function Section({ number, title, children }: { number: string; title: string; children: React.ReactNode }) {
+  return (
+    <section className="anim-fade-up">
+      <div className="flex items-center gap-4 mb-6">
+        <span className="font-display text-2xl" style={{ color: 'var(--gold)' }}>{number}</span>
+        <div className="h-px flex-1" style={{ background: 'var(--line)' }} />
+        <h2 className="font-display text-xl" style={{ color: 'var(--paper)' }}>{title}</h2>
       </div>
+      <div className="surface p-6 space-y-5">
+        {children}
+      </div>
+    </section>
+  )
+}
+
+function Field({ label, hint, required, error, children }: {
+  label: string; hint?: string; required?: boolean; error?: string; children: React.ReactNode
+}) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-2">
+        <label className="label">
+          {label}{required && <span style={{ color: 'var(--gold)' }}> *</span>}
+        </label>
+        {hint && <span className="text-xs" style={{ color: 'var(--paper-4)' }}>{hint}</span>}
+      </div>
+      {children}
+      {error && <p className="mt-2 text-xs" style={{ color: 'var(--danger)' }}>{error}</p>}
+    </div>
+  )
+}
+
+function Toggle({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center justify-center gap-2 rounded-xl px-4 py-4 text-sm font-medium transition-all"
+      style={{
+        background: active ? 'var(--ink-3)' : 'var(--ink-1)',
+        border: `1px solid ${active ? 'var(--gold)' : 'var(--line-2)'}`,
+        color: active ? 'var(--paper)' : 'var(--paper-2)',
+        boxShadow: active ? '0 0 0 4px var(--gold-soft)' : 'none',
+      }}
+    >
+      {icon}
+      {label}
+    </button>
+  )
+}
+
+function ChipGroup<T extends string | number>({ options, value, onChange }: {
+  options: { label: string; value: T }[]; value: T; onChange: (v: T) => void
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map(opt => (
+        <button
+          key={String(opt.value)}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={value === opt.value ? 'chip chip-active' : 'chip'}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function SelectInput({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+  return (
+    <div className="relative">
+      <select className="input pr-10 appearance-none" value={value} onChange={e => onChange(e.target.value)}>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+      <ChevronDown size={16} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--paper-3)' }} />
     </div>
   )
 }

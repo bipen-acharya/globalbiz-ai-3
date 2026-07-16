@@ -1,382 +1,218 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowRight, Bot, Loader2, MessageCircle, Send, X } from 'lucide-react'
+import { MessageCircle, X, Send, Sparkles } from 'lucide-react'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// FloatingChatButton — lightweight founder assistant.
+// Calls /api/chat with conversation history; falls back to friendly defaults
+// when the chat endpoint isn't configured.
+// ─────────────────────────────────────────────────────────────────────────────
 
-type Step =
-  | 'intro'
-  | 'category'
-  | 'business_type'
-  | 'state'
-  | 'suburb'
-  | 'website'
-  | 'customers'
-  | 'budget'
-  | 'launch'
-  | 'done'
-
-interface Msg { role: 'ai' | 'user'; text: string }
-
-interface ChatData {
-  description:     string
-  businessName:    string
-  category:        string
-  businessType:    'physical' | 'online'
-  state:           string
-  suburb:          string
-  websiteUrl:      string
-  targetCustomers: string
-  budgetRange:     string
-  launchTimeframe: string
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
 }
 
-const INITIAL: ChatData = {
-  description: '', businessName: '', category: '',
-  businessType: 'physical', state: '', suburb: '',
-  websiteUrl: '', targetCustomers: '',
-  budgetRange: '$5K–$20K', launchTimeframe: '3–6 months',
+const QUICK_PROMPTS = [
+  'How does GlobalBiz AI work?',
+  'What does the report include?',
+  'Can I use it for an online business?',
+  'Is it free to use?',
+]
+
+const FALLBACK_REPLIES: Record<string, string> = {
+  'how does globalbiz ai work':
+    'GlobalBiz AI generates a full feasibility report from your business idea — combining real Google Maps competitor data, suburb-level demand signals, and AI analysis. It takes about 3 minutes.',
+  'what does the report include':
+    'You get a Business Viability Score, Decision Confidence Score, competitor mapping, budget fit, Australian permit/compliance notes, expansion pathways, and a 90-day action plan.',
+  'can i use it for an online business':
+    'Yes — choose "Online / Digital" in the form. We&apos;ll read your website automatically and analyse online competitors instead of local ones.',
+  'is it free to use':
+    'Yes, completely free. No account required. There&apos;s a soft daily limit so the AI runs sustainably.',
 }
 
-// ─── Questions ────────────────────────────────────────────────────────────────
-
-const Q: Record<Step, string> = {
-  intro:         "Hi! I'm your AI business analyst. What's your business idea? (include the name if you have one)",
-  category:      'Which category best describes your business?',
-  business_type: 'Is this a physical / local business or an online / digital business?',
-  state:         'Which Australian state will you operate in?',
-  suburb:        'What suburb or city will you be operating in?',
-  website:       "What's your website URL? (type 'none' if you don't have one yet)",
-  customers:     'Who are your target customers? e.g. "local families", "25–40 year old professionals"',
-  budget:        'What is your approximate startup budget?',
-  launch:        'When are you planning to launch?',
-  done:          "Great — I have everything I need! Click below to generate your full report.",
-}
-
-// ─── Quick-reply chips per step (BUG 4) ───────────────────────────────────────
-
-const CHIPS: Partial<Record<Step, string[]>> = {
-  category: [
-    'Café / Coffee shop', 'Restaurant / Takeaway', 'Retail store',
-    'Online store / eCommerce', 'Beauty salon / Barber', 'Gym / Fitness',
-    'Health & wellness', 'Trades / Handyman', 'IT services / Software',
-    'Marketing / Agency', 'Consulting', 'Other',
-  ],
-  business_type: ['Physical / Local', 'Online / Digital'],
-  state:  ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT'],
-  budget: ['Under $5K', '$5K–$20K', '$20K–$50K', '$50K–$100K', '$100K+'],
-  launch: ['Within 3 months', '3–6 months', '6–12 months', '1+ year'],
-}
-
-// ─── State full names ─────────────────────────────────────────────────────────
-
-const STATE_FULL: Record<string, string> = {
-  NSW: 'New South Wales', VIC: 'Victoria',  QLD: 'Queensland',
-  WA:  'Western Australia', SA: 'South Australia', TAS: 'Tasmania',
-  ACT: 'Australian Capital Territory',       NT: 'Northern Territory',
-}
-
-// ─── Step flow ────────────────────────────────────────────────────────────────
-
-function nextStep(current: Step, data: ChatData): Step {
-  switch (current) {
-    case 'intro':         return 'category'
-    case 'category':      return 'business_type'
-    case 'business_type': return data.businessType === 'online' ? 'website' : 'state'
-    case 'state':         return 'suburb'
-    case 'suburb':        return 'customers'
-    case 'website':       return 'customers'
-    case 'customers':     return 'budget'
-    case 'budget':        return 'launch'
-    case 'launch':        return 'done'
-    default:              return 'done'
+function fallbackReply(question: string): string {
+  const key = question.toLowerCase().trim().replace(/[?.,!]/g, '')
+  for (const [k, v] of Object.entries(FALLBACK_REPLIES)) {
+    if (key.includes(k.split(' ')[0]) && key.includes(k.split(' ')[1] ?? '')) return v
   }
+  return 'Great question — start with the "Generate founder report" button to validate your idea, or "Grow existing business" to diagnose an existing one. Anything else I can clarify?'
 }
-
-function parseAnswer(step: Step, answer: string): Partial<ChatData> {
-  switch (step) {
-    case 'intro':
-      return { description: answer, businessName: answer.split(/[,.\n]/)[0]?.trim().substring(0, 80) ?? '' }
-    case 'category':
-      return { category: answer }
-    case 'business_type':
-      return { businessType: answer.toLowerCase().includes('online') ? 'online' : 'physical' }
-    case 'state':
-      return { state: STATE_FULL[answer] ?? answer }
-    case 'suburb':
-      return { suburb: answer }
-    case 'website':
-      return { websiteUrl: answer.toLowerCase() === 'none' ? '' : answer }
-    case 'customers':
-      return { targetCustomers: answer }
-    case 'budget':
-      return { budgetRange: answer }
-    case 'launch':
-      return { launchTimeframe: answer }
-    default:
-      return {}
-  }
-}
-
-// ─── API payload builder (BUG 3) ──────────────────────────────────────────────
-
-const BUDGET_MAP: Record<string, number> = {
-  'Under $5K': 4000, '$5K–$20K': 12000, '$20K–$50K': 35000,
-  '$50K–$100K': 75000, '$100K+': 150000,
-}
-
-function buildPayload(d: ChatData) {
-  const isOnline = d.businessType === 'online'
-  const budget   = BUDGET_MAP[d.budgetRange] ?? 12000
-
-  return {
-    user_goal_mode:              'start_new',
-    business_name:               d.businessName || 'My Business',
-    business_concept:            d.description,
-    products_services:           d.description,
-    business_type:               d.category || 'Other',
-    business_model_type:         d.businessType,
-    state:                       d.state || 'New South Wales',
-    suburb:                      isOnline ? '' : d.suburb,
-    city:                        isOnline ? '' : d.suburb,
-    postcode:                    '',
-    lat:                         null,
-    lng:                         null,
-    radius_km:                   10,
-    website_url:                 d.websiteUrl,
-    google_business_profile_url: '',
-    delivery_coverage:           isOnline ? 'Australia-wide' : '',
-    target_market:               isOnline ? 'Australia' : '',
-    target_customers:            d.targetCustomers ? [d.targetCustomers] : ['General public'],
-    staff_count:                 2,
-    startup_budget:              String(budget),
-    expected_revenue:            String(Math.round(budget * 0.25)),
-    avg_price_range:             '$15–$50',
-    launch_timeline:             d.launchTimeframe || '3–6 months',
-    growth_goal:                 'Grow revenue',
-    break_even_expectation:      '12–18 months',
-    risk_tolerance:              'medium',
-    current_monthly_revenue:     '',
-    current_challenges:          [],
-    growth_strategy_type:        '',
-    current_location_suburb:     isOnline ? '' : d.suburb,
-  }
-}
-
-const TEMP_KEY = 'globalbiz_temp_report'
-
-// ─── Chat panel ───────────────────────────────────────────────────────────────
-
-function ChatPanel({ onClose }: { onClose: () => void }) {
-  const router = useRouter()
-  const [step,       setStep]       = useState<Step>('intro')
-  const [msgs,       setMsgs]       = useState<Msg[]>([{ role: 'ai', text: Q.intro }])
-  const [input,      setInput]      = useState('')
-  const [data,       setData]       = useState<ChatData>(INITIAL)
-  const [generating, setGenerating] = useState(false)
-  const [genError,   setGenError]   = useState<string | null>(null)
-  const endRef  = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [msgs])
-
-  function send(text: string) {
-    if (!text.trim() || step === 'done' || generating) return
-
-    const parsed   = parseAnswer(step, text)
-    const newData  = { ...data, ...parsed }
-    const next     = nextStep(step, newData)
-
-    setData(newData)
-    setMsgs(m => [
-      ...m,
-      { role: 'user', text },
-      { role: 'ai',  text: Q[next] },
-    ])
-    setStep(next)
-    setInput('')
-
-    setTimeout(() => inputRef.current?.focus(), 50)
-  }
-
-  async function generate() {
-    setGenerating(true)
-    setGenError(null)
-    setMsgs(m => [...m, { role: 'ai', text: 'Generating your report… this usually takes 20–30 seconds. ⏳' }])
-
-    try {
-      const res  = await fetch('/api/analyze', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(buildPayload(data)),
-      })
-      const json = await res.json()
-
-      if (!res.ok || !json.success) throw new Error(json.error ?? 'Report generation failed.')
-
-      if (json._temp && json.report) {
-        try {
-          sessionStorage.setItem(
-            `${TEMP_KEY}_${json.reportId}`,
-            JSON.stringify({ ...json.report, analysis: json.report }),
-          )
-        } catch {}
-      }
-
-      onClose()
-      router.push(`/report/${json.reportId}`)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Something went wrong.'
-      setGenError(msg)
-      setGenerating(false)
-      setMsgs(m => [...m, { role: 'ai', text: `Sorry, there was a problem: ${msg} Please try again.` }])
-    }
-  }
-
-  const chips = CHIPS[step]
-
-  return (
-    <div className="flex flex-col h-full bg-white">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600">
-            <Bot size={15} className="text-white" />
-          </div>
-          <div>
-            <div className="text-sm font-semibold text-slate-900">AI Business Analyst</div>
-            <div className="text-xs text-slate-400">Powered by GlobalBiz AI</div>
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
-          aria-label="Close"
-        >
-          <X size={16} />
-        </button>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
-        {msgs.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {m.role === 'ai' && (
-              <div className="mr-2 mt-0.5 flex-shrink-0 h-6 w-6 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center">
-                <MessageCircle size={11} className="text-blue-600" />
-              </div>
-            )}
-            <div
-              className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                m.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-sm'
-                  : 'bg-slate-100 text-slate-800 rounded-bl-sm'
-              }`}
-            >
-              {m.text}
-            </div>
-          </div>
-        ))}
-        <div ref={endRef} />
-      </div>
-
-      {/* Quick-reply chips (BUG 4) */}
-      {step !== 'done' && chips && chips.length > 0 && (
-        <div className="border-t border-slate-100 px-4 py-2.5 flex gap-1.5 flex-wrap flex-shrink-0 max-h-32 overflow-y-auto">
-          {chips.map(c => (
-            <button
-              key={c}
-              onClick={() => send(c)}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-all whitespace-nowrap"
-            >
-              {c}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Done — generate button (BUG 3) */}
-      {step === 'done' ? (
-        <div className="border-t border-slate-200 px-4 py-3 flex-shrink-0">
-          {genError && <p className="mb-2 text-xs text-red-600">{genError}</p>}
-          <button
-            onClick={generate}
-            disabled={generating}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {generating
-              ? <><Loader2 size={15} className="animate-spin" /> Generating your report…</>
-              : <>Generate My Report <ArrowRight size={15} /></>
-            }
-          </button>
-        </div>
-      ) : (
-        /* Text input bar */
-        <div className="border-t border-slate-200 px-4 py-3 flex items-center gap-2 flex-shrink-0">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) send(input) }}
-            placeholder="Type your answer…"
-            className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-blue-300 focus:bg-white transition-all"
-          />
-          <button
-            onClick={() => send(input)}
-            disabled={!input.trim()}
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-all hover:bg-blue-700 disabled:opacity-40"
-          >
-            <Send size={14} />
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Floating button + slide-up drawer (BUG 2) ───────────────────────────────
 
 export default function FloatingChatButton() {
   const [open, setOpen] = useState(false)
+  const [input, setInput] = useState('')
+  const [sending, setSending] = useState(false)
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: 'assistant',
+      content: "Hi — I'm the GlobalBiz AI guide. Ask me how the platform works, what's in a report, or which flow fits your situation.",
+    },
+  ])
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Prevent body scroll when drawer is open
   useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [open])
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+  }, [messages, open])
+
+  async function send(text?: string) {
+    const content = (text ?? input).trim()
+    if (!content || sending) return
+    const next: Message[] = [...messages, { role: 'user', content }]
+    setMessages(next)
+    setInput('')
+    setSending(true)
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: next }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setMessages(m => [...m, { role: 'assistant', content: data.reply || fallbackReply(content) }])
+      } else {
+        setMessages(m => [...m, { role: 'assistant', content: fallbackReply(content) }])
+      }
+    } catch {
+      setMessages(m => [...m, { role: 'assistant', content: fallbackReply(content) }])
+    } finally {
+      setSending(false)
+    }
+  }
 
   return (
     <>
-      {/* Floating button — always visible when drawer is closed */}
+      {/* Launcher */}
       <button
-        onClick={() => setOpen(true)}
-        title="Chat with AI Assistant"
-        aria-label="Chat with AI Assistant"
-        className={`fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all duration-200 hover:scale-110 hover:bg-blue-700 hover:shadow-xl ${open ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-label={open ? 'Close chat' : 'Open chat'}
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full px-5 py-3.5 text-sm font-medium transition-all hover:scale-105"
+        style={{
+          background: 'var(--gold)',
+          color: '#FFFFFF',
+          boxShadow: '0 14px 32px -10px rgba(79, 70, 229, 0.45)',
+        }}
       >
-        <MessageCircle size={22} />
+        {open ? <X size={18} /> : <MessageCircle size={18} />}
+        <span className="hidden sm:inline">{open ? 'Close' : 'Ask GlobalBiz'}</span>
       </button>
 
-      {/* Dim overlay */}
-      <div
-        onClick={() => setOpen(false)}
-        className={`fixed inset-0 z-40 bg-black/25 backdrop-blur-[2px] transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-      />
+      {/* Panel */}
+      {open && (
+        <div
+          className="fixed bottom-24 right-6 z-50 flex w-[360px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden anim-fade-up"
+          style={{
+            height: 520,
+            background: 'var(--ink-2)',
+            border: '1px solid var(--line-2)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-xl)',
+          }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--line)' }}>
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: 'var(--gold-soft)', color: 'var(--gold)' }}>
+                <Sparkles size={16} />
+              </span>
+              <div>
+                <div className="text-sm font-semibold" style={{ color: 'var(--paper)' }}>GlobalBiz Guide</div>
+                <div className="text-xs flex items-center gap-1.5" style={{ color: 'var(--paper-3)' }}>
+                  <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: 'var(--ok)' }} />
+                  Online · usually replies instantly
+                </div>
+              </div>
+            </div>
+            <button onClick={() => setOpen(false)} className="p-1 transition-colors hover:opacity-70" style={{ color: 'var(--paper-3)' }}>
+              <X size={16} />
+            </button>
+          </div>
 
-      {/* Drawer — slides up from bottom on mobile, anchored bottom-right on desktop */}
-      <div
-        className={`fixed z-50 flex flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-out
-          bottom-0 left-0 right-0 h-[90vh]
-          sm:bottom-6 sm:right-6 sm:left-auto sm:h-[600px] sm:w-[400px] sm:rounded-2xl
-          ${open ? 'translate-y-0' : 'translate-y-full'}`}
-      >
-        {open && <ChatPanel onClose={() => setOpen(false)} />}
-      </div>
+          {/* Messages */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed anim-fade-up"
+                  style={
+                    m.role === 'user'
+                      ? { background: 'var(--gold)', color: '#FFFFFF' }
+                      : { background: 'var(--ink-1)', color: 'var(--paper)', border: '1px solid var(--line)' }
+                  }
+                >
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="flex items-center gap-1.5 rounded-2xl px-4 py-3" style={{ background: 'var(--ink-1)', border: '1px solid var(--line)' }}>
+                  <span className="dot" />
+                  <span className="dot" style={{ animationDelay: '120ms' }} />
+                  <span className="dot" style={{ animationDelay: '240ms' }} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Quick prompts */}
+          {messages.length <= 1 && (
+            <div className="px-5 pb-2 flex flex-wrap gap-2">
+              {QUICK_PROMPTS.map(p => (
+                <button
+                  key={p}
+                  onClick={() => send(p)}
+                  className="chip text-xs"
+                  style={{ padding: '4px 10px' }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Input */}
+          <div className="px-4 py-3" style={{ borderTop: '1px solid var(--line)' }}>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && send()}
+                placeholder="Ask me anything…"
+                className="flex-1 rounded-full px-4 py-2.5 text-sm outline-none"
+                style={{ background: 'var(--ink-1)', border: '1px solid var(--line-2)', color: 'var(--paper)' }}
+              />
+              <button
+                onClick={() => send()}
+                disabled={!input.trim() || sending}
+                className="flex h-10 w-10 items-center justify-center rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: 'var(--gold)', color: '#FFFFFF' }}
+              >
+                <Send size={15} />
+              </button>
+            </div>
+          </div>
+
+          <style jsx>{`
+            .dot {
+              display: inline-block;
+              width: 6px;
+              height: 6px;
+              border-radius: 999px;
+              background: var(--paper-4);
+              animation: bounce 1.2s ease-in-out infinite;
+            }
+            @keyframes bounce {
+              0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+              40% { transform: translateY(-4px); opacity: 1; }
+            }
+          `}</style>
+        </div>
+      )}
     </>
   )
 }

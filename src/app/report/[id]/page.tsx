@@ -55,7 +55,7 @@ function ScoreMeter({ label, score, delay = 0, insight }: { label: string; score
 
 function Skeleton() {
   return (
-    <div className="min-h-screen px-6 py-8" style={{ background: 'var(--bg-base)' }}>
+    <div className="min-h-screen px-6 py-8" style={{ background: 'var(--ink-1)' }}>
       <div className="max-w-4xl mx-auto space-y-6">
         {[48, 96, 320, 192, 240].map(h => (
           <div key={h} className="skeleton rounded-xl" style={{ height: h }} />
@@ -230,13 +230,13 @@ export default function ReportPage({ params }: { params: { id: string } }) {
   const operatingHours = safeReport?.operating_hours || 'Not provided'
   const sourceBadge = (label?: string) => {
     if (label === 'real_data') return (
-      <span className="rounded-full px-2 py-0.5 text-xs border border-emerald-200 bg-emerald-50 text-emerald-700">Real data</span>
+      <span className="rounded-full px-2 py-0.5 text-xs" style={{ border: '1px solid rgba(5,150,105,0.25)', background: 'rgba(5,150,105,0.08)', color: 'var(--ok)' }}>Real data</span>
     )
     if (label === 'rules_based') return (
-      <span className="rounded-full px-2 py-0.5 text-xs border border-blue-200 bg-blue-50 text-blue-700">Rules based</span>
+      <span className="rounded-full px-2 py-0.5 text-xs" style={{ border: '1px solid var(--gold-soft)', background: 'var(--gold-soft)', color: 'var(--gold)' }}>Rules based</span>
     )
     return (
-      <span className="rounded-full px-2 py-0.5 text-xs border border-amber-200 bg-amber-50 text-amber-700">Estimated insight</span>
+      <span className="rounded-full px-2 py-0.5 text-xs" style={{ border: '1px solid rgba(217,119,6,0.25)', background: 'rgba(217,119,6,0.08)', color: 'var(--warn)' }}>Estimated insight</span>
     )
   }
 
@@ -303,7 +303,8 @@ export default function ReportPage({ params }: { params: { id: string } }) {
           </button>
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs text-blue-700 transition-all hover:bg-blue-100"
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-all"
+            style={{ border: '1px solid var(--gold)', background: 'var(--gold-soft)', color: 'var(--gold)' }}
           >
             <Download size={13} /> PDF
           </button>
@@ -325,7 +326,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
             {a.nearby_data && (
               <>
                 <span className="w-1 h-1 rounded-full bg-slate-300" />
-                <span className="text-emerald-600 font-medium">{a.nearby_data.total_found} real competitors · {sourceLabel}</span>
+                <span className="font-medium" style={{ color: 'var(--ok)' }}>{a.nearby_data.total_found} real competitors · {sourceLabel}</span>
               </>
             )}
           </div>
@@ -334,12 +335,12 @@ export default function ReportPage({ params }: { params: { id: string } }) {
           </h1>
           {isExistingReport && Boolean((safeReport as unknown as Record<string, unknown>)?.business_name) && (
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-semibold text-slate-900">
-              <Building2 size={14} className="text-blue-600" />
+              <Building2 size={14} style={{ color: 'var(--gold)' }} />
               {String((safeReport as unknown as Record<string, unknown>).business_name)}
             </div>
           )}
           <div className="mb-3">{sourceBadge(a.section_sources?.nearby_competitors)}</div>
-          <p className="leading-relaxed max-w-2xl" style={{ color: 'var(--text-secondary)' }}>{a.executive_summary || a.summary}</p>
+          <p className="leading-relaxed max-w-2xl" style={{ color: 'var(--paper-3)' }}>{a.executive_summary || a.summary}</p>
         </div>
 
         {/* Hero score */}
@@ -347,10 +348,10 @@ export default function ReportPage({ params }: { params: { id: string } }) {
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="text-center sm:text-left">
               <div className="text-xs uppercase tracking-widest mb-2 text-slate-400">Overall viability</div>
-              <div className="font-display text-7xl font-bold" style={{ background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              <div className="font-display text-7xl font-bold" style={{ background: 'linear-gradient(135deg, var(--gold) 0%, var(--gold-2) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                 {viabilityScore}%
               </div>
-              <div className={`text-base font-medium mt-1 ${viabilityScore >= 75 ? 'text-emerald-600' : viabilityScore >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+              <div className="text-base font-medium mt-1" style={{ color: viabilityScore >= 75 ? 'var(--ok)' : viabilityScore >= 50 ? 'var(--warn)' : 'var(--danger)' }}>
                 {scoreLabel(viabilityScore)}
               </div>
               {a.nearby_data && (
@@ -362,7 +363,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                 <RadarChart data={radarData}>
                   <PolarGrid stroke="rgba(15,23,42,0.08)" />
                   <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 11 }} />
-                  <Radar dataKey="value" stroke="#2563eb" fill="#2563eb" fillOpacity={0.08} strokeWidth={1.5} />
+                  <Radar dataKey="value" stroke="#4F46E5" fill="#4F46E5" fillOpacity={0.08} strokeWidth={1.5} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
@@ -420,7 +421,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
           </div>
           <div className="ui-card p-4">
             <div className="ui-label">Competitors</div>
-            <div className="font-display text-2xl font-bold text-blue-600">
+            <div className="font-display text-2xl font-bold" style={{ color: 'var(--gold)' }}>
               {a.nearby_data?.total_found ?? '—'}
             </div>
             <div className="text-xs mt-1 text-slate-400">{a.nearby_data ? `${a.nearby_data.competitor_density}` : 'estimated'}</div>
@@ -441,14 +442,15 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                 onClick={() => setActiveTab(t.id)}
                 className="px-4 py-3 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-px flex items-center gap-1.5"
                 style={{
-                  borderBottomColor: activeTab === t.id ? '#2563eb' : 'transparent',
-                  color: activeTab === t.id ? '#2563eb' : '#94a3b8',
+                  borderBottomColor: activeTab === t.id ? '#4F46E5' : 'transparent',
+                  color: activeTab === t.id ? '#4F46E5' : 'var(--paper-4)',
                 }}
               >
                 {t.label}
                 {t.badge !== undefined && (
                   <span
-                    className="text-xs px-1.5 py-0.5 rounded-full leading-none bg-blue-50 text-blue-600"
+                    className="text-xs px-1.5 py-0.5 rounded-full leading-none"
+                    style={{ background: 'var(--gold-soft)', color: 'var(--gold)' }}
                   >
                     {t.badge}
                   </span>
@@ -498,7 +500,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
             {a.fastest_growth_levers?.length > 0 && (
               <div className="ui-card p-5">
                 <div className="mb-4 flex items-center gap-2">
-                  <TrendingUp size={16} className="text-blue-600" />
+                  <TrendingUp size={16} style={{ color: 'var(--gold)' }} />
                   <span className="font-display font-semibold text-sm text-slate-900">Fastest growth levers</span>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3">
@@ -913,7 +915,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
             {a.roadmap?.map((week, i) => (
               <div key={i} className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 text-xs font-bold flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--gold-soft)', border: '1px solid rgba(79,70,229,0.25)', color: 'var(--gold)' }}>
                     {i + 1}
                   </div>
                   {i < (a.roadmap?.length ?? 0) - 1 && <div className="flex-1 w-px bg-slate-200 mt-2" />}

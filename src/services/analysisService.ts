@@ -1,14 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /api/report/[id]
-// Reports are not persisted server-side. Clients must use sessionStorage.
-// This endpoint exists only so the report page can fall through gracefully.
+// Analysis Service — façade for new and existing-business report generation.
+// Heavy prompt-building lives in lib/openai.ts and lib/openai-existing.ts.
+// This module is the stable import surface for controllers.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { NextResponse } from 'next/server'
-
-export async function GET() {
-  return NextResponse.json(
-    { error: 'Reports are stored locally in your browser session. Open the link in the same browser tab where it was generated.' },
-    { status: 404 }
-  )
-}
+export { generateAnalysis } from '@/lib/openai'
+export { generateExistingAnalysis } from '@/lib/openai-existing'

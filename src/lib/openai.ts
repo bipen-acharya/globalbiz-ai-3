@@ -1,15 +1,9 @@
-import OpenAI from 'openai'
+import { generateJSON } from '@/services/aiClient'
 import type { BusinessFormData, AnalysisResult, NearbyCompetitorData, CompetitorThreat, Recommendation, RoadmapWeek, AlternativeLocation } from '@/types'
 import type { ScoringOutput } from './scoring-engine'
 import { priceLevelLabel } from './utils'
 import { getAustraliaSetupChecklist, getEffectiveBusinessType } from './australia-business-rules'
 import { getBusinessGroup, getBusinessGroupLabel, isDigitalTechGroup } from './business-groups'
-
-function getClient(): OpenAI {
-  const k = process.env.OPENAI_API_KEY
-  if (!k) throw new Error('OPENAI_API_KEY not set')
-  return new OpenAI({ apiKey: k })
-}
 
 // ── Signal-driven text content (no static strings) ───────────────────────────
 function buildSignalDrivenContent(
@@ -672,20 +666,11 @@ Return ONLY valid JSON matching this exact schema:
 }`
 
   try {
-    const client = getClient()
-    const completion = await client.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [{ role: 'user', content: prompt }],
+    const parsed = await generateJSON<Partial<AnalysisResult>>(prompt, {
+      tier: 'smart',
       temperature: 0.6,
-      max_tokens: 3800,
-      response_format: { type: 'json_object' },
+      maxTokens: 3800,
     })
-
-    const raw = completion.choices[0]?.message?.content
-    if (!raw) throw new Error('Empty OpenAI response')
-
-    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
-    const parsed = JSON.parse(cleaned) as Partial<AnalysisResult>
     const fallback = buildFallbackAnalysis(data, nearby, scores)
 
     // Enforce pre-calculated scores — AI cannot override them
@@ -703,7 +688,7 @@ Return ONLY valid JSON matching this exact schema:
       nearby_data: nearby,
     }
   } catch (err) {
-    console.error('[openai] error, using signal fallback:', err)
+    console.error('[analysis] AI error, using signal fallback:', err)
     return buildFallbackAnalysis(data, nearby, scores)
   }
 }

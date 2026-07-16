@@ -3,13 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
-  ArrowLeft,
-  ArrowRight,
-  ChevronDown,
-  MapPin,
-  Search,
-  Star,
-  X,
+  ArrowLeft, ArrowUpRight, ChevronDown, MapPin, Search, Star, X,
 } from 'lucide-react'
 import { AU_STATES, searchSuburbs } from '@/lib/australia-suburbs'
 import { BUSINESS_TYPES } from '@/lib/australia-business-rules'
@@ -21,8 +15,6 @@ import type { AustraliaSuburb, NearbyCompetitorData, NearbyPlace } from '@/types
 
 const STORAGE_KEY = 'globalbiz_explore_draft'
 const RADIUS_OPTIONS = [1, 3, 5] as const
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Draft = {
   businessType: string
@@ -40,226 +32,17 @@ const DEFAULT_DRAFT: Draft = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function densityLabel(density: NearbyCompetitorData['competitor_density']) {
-  const map = {
-    low: 'Low competition',
-    medium: 'Moderate competition',
-    high: 'High competition',
-    saturated: 'Saturated market',
-  }
-  return map[density] ?? density
+function densityLabel(d: NearbyCompetitorData['competitor_density']) {
+  return ({ low: 'Low competition', medium: 'Moderate', high: 'High', saturated: 'Saturated' } as const)[d] ?? d
 }
 
-function densityColor(density: NearbyCompetitorData['competitor_density']) {
-  if (density === 'low') return 'text-emerald-600 bg-emerald-50 border-emerald-200'
-  if (density === 'medium') return 'text-amber-700 bg-amber-50 border-amber-200'
-  return 'text-red-700 bg-red-50 border-red-200'
-}
-
-function strengthBadge(strength?: NearbyPlace['competitor_strength']) {
-  if (strength === 'strong') return 'bg-amber-100 text-amber-700'
-  if (strength === 'weak') return 'bg-emerald-100 text-emerald-700'
-  return 'bg-sky-100 text-sky-700'
-}
-
-function strengthLabel(strength?: NearbyPlace['competitor_strength']) {
-  if (strength === 'strong') return 'Strong'
-  if (strength === 'weak') return 'Weak'
+function strengthLabel(s?: NearbyPlace['competitor_strength']) {
+  if (s === 'strong') return 'Strong'
+  if (s === 'weak') return 'Weak'
   return 'Moderate'
 }
 
-function starsFill(rating: number | null) {
-  if (rating === null) return null
-  return Math.round(rating * 2) / 2
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function Select({
-  options,
-  value,
-  onChange,
-  placeholder = 'Select…',
-}: {
-  options: readonly string[]
-  value: string
-  onChange: (v: string) => void
-  placeholder?: string
-}) {
-  return (
-    <div className="relative">
-      <select
-        className="ui-input appearance-none pr-10"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-      >
-        <option value="">{placeholder}</option>
-        {options.map(o => (
-          <option key={o} value={o}>{o}</option>
-        ))}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-    </div>
-  )
-}
-
-function SuburbSearch({
-  state,
-  selected,
-  onSelect,
-  onClear,
-}: {
-  state: string
-  selected: AustraliaSuburb | null
-  onSelect: (s: AustraliaSuburb) => void
-  onClear: () => void
-}) {
-  const [query, setQuery] = useState(selected ? `${selected.suburb} ${selected.postcode}` : '')
-  const [results, setResults] = useState<AustraliaSuburb[]>([])
-  const [open, setOpen] = useState(false)
-  const wrapperRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  // Sync query text when external `selected` changes (e.g., on load from draft)
-  useEffect(() => {
-    if (selected) {
-      setQuery(`${selected.suburb} ${selected.postcode}`)
-    }
-  }, [selected])
-
-  // Close on outside click
-  useEffect(() => {
-    function handleOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    window.addEventListener('mousedown', handleOutside)
-    return () => window.removeEventListener('mousedown', handleOutside)
-  }, [])
-
-  function handleChange(value: string) {
-    setQuery(value)
-    if (!state || value.trim().length < 2) {
-      setResults([])
-      setOpen(false)
-      return
-    }
-    const hits = searchSuburbs(state, value.trim())
-    setResults(hits)
-    setOpen(hits.length > 0)
-  }
-
-  function handleSelect(s: AustraliaSuburb) {
-    onSelect(s)
-    setQuery(`${s.suburb} ${s.postcode}`)
-    setOpen(false)
-  }
-
-  function handleClear() {
-    setQuery('')
-    setResults([])
-    setOpen(false)
-    onClear()
-    inputRef.current?.focus()
-  }
-
-  return (
-    <div className="relative" ref={wrapperRef}>
-      <div className="relative">
-        <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" />
-        <input
-          ref={inputRef}
-          className="ui-input pl-9 pr-10"
-          placeholder={state ? 'Search suburb or postcode…' : 'Select a state first'}
-          disabled={!state}
-          value={query}
-          onChange={e => handleChange(e.target.value)}
-          onFocus={() => {
-            if (results.length > 0) setOpen(true)
-          }}
-        />
-        {query && (
-          <button
-            type="button"
-            onClick={handleClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:text-slate-700"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
-      {open && results.length > 0 && (
-        <ul className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
-          {results.map(s => (
-            <li key={`${s.suburb}-${s.postcode}`}>
-              <button
-                type="button"
-                className="flex w-full items-start gap-3 px-4 py-3 text-left text-sm hover:bg-slate-50"
-                onClick={() => handleSelect(s)}
-              >
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                <span>
-                  <span className="font-medium text-slate-900">{s.suburb}</span>
-                  <span className="ml-2 text-slate-400">{s.postcode}</span>
-                  <span className="ml-1 text-slate-400">· {s.council}</span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}
-
-function BusinessCard({ place, index }: { place: NearbyPlace; index: number }) {
-  const rating = starsFill(place.rating)
-  return (
-    <div className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-500">
-        {index + 1}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-display text-base font-semibold text-slate-900 truncate">{place.name}</span>
-          {place.competitor_strength && (
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${strengthBadge(place.competitor_strength)}`}>
-              {strengthLabel(place.competitor_strength)}
-            </span>
-          )}
-          {place.open_now !== null && (
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${place.open_now ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-              {place.open_now ? 'Open now' : 'Closed'}
-            </span>
-          )}
-        </div>
-        <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-          {place.address && <span className="truncate max-w-xs">{place.address}</span>}
-          {place.distance_km !== null && (
-            <span className="shrink-0">{place.distance_km}km away</span>
-          )}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
-          {rating !== null && (
-            <span className="flex items-center gap-1 text-amber-600">
-              <Star className="h-3.5 w-3.5 fill-current" />
-              {place.rating?.toFixed(1)}
-              {place.review_count !== null && (
-                <span className="text-slate-400">({place.review_count})</span>
-              )}
-            </span>
-          )}
-          {place.price_level !== null && (
-            <span className="text-slate-400">{priceLevelLabel(place.price_level)}</span>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Main page ────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ExplorePage() {
   const [draft, setDraft] = useState<Draft>(DEFAULT_DRAFT)
@@ -269,79 +52,46 @@ export default function ExplorePage() {
   const [data, setData] = useState<NearbyCompetitorData | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
 
-  // Load draft from localStorage
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw) as Draft
-        setDraft(parsed)
-      }
-    } catch {
-      // ignore
-    }
+      if (raw) setDraft(JSON.parse(raw) as Draft)
+    } catch {}
   }, [])
 
-  // Persist draft to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(draft))
-    } catch {
-      // ignore
-    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(draft)) } catch {}
   }, [draft])
 
-  function updateDraft(patch: Partial<Draft>) {
-    setDraft(prev => ({ ...prev, ...patch }))
+  function update(patch: Partial<Draft>) { setDraft(prev => ({ ...prev, ...patch })) }
+
+  function validate(): boolean {
+    if (!draft.businessType) return setFormError('Please select a business type.'), false
+    if (!draft.state)        return setFormError('Please select a state.'), false
+    if (!draft.suburb)       return setFormError('Please search and select a suburb.'), false
+    setFormError(null); return true
   }
 
-  function validateForm(): boolean {
-    if (!draft.businessType) {
-      setFormError('Please select a business type.')
-      return false
-    }
-    if (!draft.state) {
-      setFormError('Please select a state.')
-      return false
-    }
-    if (!draft.suburb) {
-      setFormError('Please search and select a suburb.')
-      return false
-    }
-    setFormError(null)
-    return true
-  }
-
-  async function handleSubmit() {
-    if (!validateForm()) return
-
-    const { suburb, radiusKm, businessType } = draft
-    if (!suburb) return
-
-    setLoading(true)
-    setError(null)
-    setData(null)
-
+  async function submit() {
+    if (!validate() || !draft.suburb) return
+    setLoading(true); setError(null); setData(null)
     const params = new URLSearchParams({
-      lat: String(suburb.lat),
-      lng: String(suburb.lng),
-      radius_km: String(radiusKm),
-      business_type: businessType,
-      suburb: suburb.suburb,
-      state: suburb.state,
-      postcode: suburb.postcode,
+      lat: String(draft.suburb.lat),
+      lng: String(draft.suburb.lng),
+      radius_km: String(draft.radiusKm),
+      business_type: draft.businessType,
+      suburb: draft.suburb.suburb,
+      state: draft.suburb.state,
+      postcode: draft.suburb.postcode,
     })
-
     try {
-      const res = await fetch(`/api/explore?${params.toString()}`)
+      const res = await fetch(`/api/explore?${params}`)
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error((body as { error?: string }).error ?? `Request failed (${res.status})`)
       }
       const json = await res.json() as NearbyCompetitorData
-      setData(json)
-      setStep('results')
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      setData(json); setStep('results'); window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -349,236 +99,176 @@ export default function ExplorePage() {
     }
   }
 
-  function handleBack() {
-    setStep('form')
-    setData(null)
-    setError(null)
-  }
-
-  // Build pre-fill URL for /analyze
-  function buildAnalyzeUrl() {
+  function analyzeUrl(): string {
     if (!draft.suburb) return '/analyze'
-    const params = new URLSearchParams({
+    return `/analyze?${new URLSearchParams({
       state: draft.suburb.state,
       suburb: draft.suburb.suburb,
       postcode: draft.suburb.postcode,
       business_type: draft.businessType,
       radius_km: String(draft.radiusKm),
-    })
-    return `/analyze?${params.toString()}`
+    })}`
   }
 
-  // ── Avg rating display ──────────────────────────────────────────────────────
-
-  const avgRatingDisplay =
-    data?.avg_rating !== null && data?.avg_rating !== undefined
-      ? data.avg_rating.toFixed(1)
-      : '—'
-
-  const priceLevelDisplay =
-    data?.avg_price_level !== null && data?.avg_price_level !== undefined
-      ? priceLevelLabel(Math.round(data.avg_price_level))
-      : '—'
-
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur-md">
-        <Link href="/" className="font-display text-lg font-bold tracking-tight text-slate-900">
-          GlobalBiz <span className="text-emerald-500">AI</span>
-        </Link>
-        <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900">
-            <ArrowLeft className="h-4 w-4" />
-            Back
+    <div className="min-h-screen" style={{ background: 'var(--ink-1)' }}>
+      {/* ── Nav ── */}
+      <nav className="nav-blur sticky top-0 z-50">
+        <div className="container-wide flex items-center justify-between py-4">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="block h-2 w-2 rounded-full" style={{ background: 'var(--gold)' }} />
+            <span className="font-semibold tracking-tight">GlobalBiz <span style={{ color: 'var(--gold)' }}>AI</span></span>
           </Link>
-          <Link href="/analyze" className="ui-primary-btn">
-            Generate report
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/" className="btn btn-ghost" style={{ padding: '8px 16px', fontSize: 13 }}>
+              <ArrowLeft size={14} /> Home
+            </Link>
+            <Link href={analyzeUrl()} className="btn btn-gold" style={{ padding: '8px 18px', fontSize: 13 }}>
+              Generate report <ArrowUpRight size={14} />
+            </Link>
+          </div>
         </div>
       </nav>
 
-      <div className="mx-auto max-w-3xl px-4 py-10">
+      <main className="mx-auto w-full max-w-2xl px-6 py-12">
         {step === 'form' && (
-          <div className="fade-up">
+          <div className="anim-fade-up">
             {/* Header */}
             <div className="mb-8">
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-medium text-emerald-700">
-                <Search className="h-3.5 w-3.5" />
-                Free competitor lookup
+              <div className="tag tag-gold mb-4">
+                <Search size={11} /> Free competitor lookup
               </div>
-              <h1 className="mt-3 font-display text-3xl font-bold text-slate-900 sm:text-4xl">
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--paper)' }}>
                 Find businesses in your area
               </h1>
-              <p className="mt-3 text-base leading-relaxed text-slate-600">
+              <p className="mt-3 text-sm sm:text-base" style={{ color: 'var(--paper-3)' }}>
                 See what&apos;s already operating near a suburb before you commit to a location or business type.
               </p>
             </div>
 
-            {/* Form card */}
-            <div className="ui-section space-y-6">
-              {/* Business type */}
-              <div>
-                <label className="ui-label mb-2 block">Business type</label>
+            {/* Form */}
+            <div className="surface p-6 space-y-5">
+              <FieldRow label="Business type">
                 <Select
                   options={BUSINESS_TYPES}
                   value={draft.businessType}
-                  onChange={v => updateDraft({ businessType: v })}
-                  placeholder="Select a business type…"
+                  onChange={v => update({ businessType: v })}
+                  placeholder="Select a business type"
                 />
+              </FieldRow>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <FieldRow label="State">
+                  <Select
+                    options={AU_STATES}
+                    value={draft.state}
+                    onChange={v => update({ state: v, suburb: null })}
+                    placeholder="Select"
+                  />
+                </FieldRow>
+
+                <FieldRow label="Suburb">
+                  <SuburbSearch
+                    state={draft.state}
+                    selected={draft.suburb}
+                    onSelect={s => update({ suburb: s })}
+                    onClear={() => update({ suburb: null })}
+                  />
+                </FieldRow>
               </div>
 
-              {/* State */}
-              <div>
-                <label className="ui-label mb-2 block">State</label>
-                <Select
-                  options={AU_STATES}
-                  value={draft.state}
-                  onChange={v => updateDraft({ state: v, suburb: null })}
-                  placeholder="Select a state…"
-                />
-              </div>
+              {draft.suburb && (
+                <div className="flex flex-wrap gap-2 anim-fade-in">
+                  <span className="tag">{draft.suburb.council}</span>
+                  <span className="tag">{draft.suburb.metro_zone}</span>
+                  <span className="tag">Pop. {draft.suburb.population_band}</span>
+                </div>
+              )}
 
-              {/* Suburb */}
-              <div>
-                <label className="ui-label mb-2 block">Suburb</label>
-                <SuburbSearch
-                  state={draft.state}
-                  selected={draft.suburb}
-                  onSelect={s => updateDraft({ suburb: s })}
-                  onClear={() => updateDraft({ suburb: null })}
-                />
-                {draft.suburb && (
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1">
-                      {draft.suburb.council}
-                    </span>
-                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1">
-                      {draft.suburb.metro_zone}
-                    </span>
-                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1">
-                      Pop. {draft.suburb.population_band}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Radius */}
-              <div>
-                <label className="ui-label mb-2 block">Search radius</label>
-                <div className="flex gap-3">
+              <FieldRow label="Search radius">
+                <div className="flex gap-2">
                   {RADIUS_OPTIONS.map(r => (
                     <button
                       key={r}
                       type="button"
-                      onClick={() => updateDraft({ radiusKm: r })}
-                      className={`flex-1 rounded-xl border px-4 py-3 text-sm font-semibold transition-all ${
+                      onClick={() => update({ radiusKm: r })}
+                      className="flex-1 rounded-lg border py-2.5 text-sm font-medium transition-all"
+                      style={
                         draft.radiusKm === r
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
-                          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
+                          ? { background: 'var(--gold)', borderColor: 'var(--gold)', color: '#fff' }
+                          : { background: 'var(--ink-2)', borderColor: 'var(--line-2)', color: 'var(--paper-2)' }
+                      }
                     >
                       {r}km
                     </button>
                   ))}
                 </div>
-              </div>
+              </FieldRow>
 
-              {/* Validation error */}
-              {formError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {formError}
+              {(formError || error) && (
+                <div className="rounded-lg border px-4 py-2.5 text-sm anim-fade-in"
+                  style={{ borderColor: 'rgba(220,38,38,0.25)', background: 'rgba(220,38,38,0.05)', color: 'var(--danger)' }}>
+                  {formError ?? error}
                 </div>
               )}
 
-              {/* Submit */}
               <button
-                type="button"
-                onClick={handleSubmit}
+                onClick={submit}
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 py-4 font-semibold text-white shadow-sm transition-colors hover:bg-emerald-600 disabled:opacity-60"
+                className="btn btn-gold w-full mt-2"
+                style={{ paddingTop: 14, paddingBottom: 14 }}
               >
-                {loading ? (
-                  <>
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                    Searching nearby businesses…
-                  </>
-                ) : (
-                  <>
-                    Show me what&apos;s there
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
+                {loading ? (<><span className="spinner" /> Searching nearby…</>) :
+                  (<>Show me what&apos;s there <ArrowUpRight size={15} /></>)}
               </button>
-
-              {error && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
             </div>
+
+            <p className="mt-4 text-center text-xs" style={{ color: 'var(--paper-4)' }}>
+              Pulls real Google Maps data — usually 3–5 seconds.
+            </p>
           </div>
         )}
 
         {step === 'results' && data && (
-          <div className="fade-up space-y-6">
-            {/* Back + header */}
+          <div className="anim-fade-up space-y-6">
+            <button
+              onClick={() => { setStep('form'); setData(null); setError(null) }}
+              className="flex items-center gap-1.5 text-sm transition-colors"
+              style={{ color: 'var(--paper-3)' }}
+            >
+              <ArrowLeft size={14} /> Change search
+            </button>
+
             <div className="flex items-start justify-between gap-4">
-              <div>
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="mb-3 flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Change search
-                </button>
-                <h1 className="font-display text-2xl font-bold text-slate-900 sm:text-3xl">
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl" style={{ color: 'var(--paper)' }}>
                   {draft.businessType} near {draft.suburb?.suburb}
                 </h1>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm" style={{ color: 'var(--paper-3)' }}>
                   {draft.radiusKm}km radius · {draft.suburb?.state}
                 </p>
               </div>
-
-              {/* Count badge */}
-              <div className="shrink-0 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-center">
-                <div className="font-display text-3xl font-bold text-emerald-700">
-                  {data.total_found}
-                </div>
-                <div className="text-xs text-emerald-600">
+              <div className="shrink-0 rounded-xl px-5 py-3 text-center" style={{ background: 'var(--gold-soft)', border: '1px solid rgba(79,70,229,0.20)' }}>
+                <div className="text-2xl font-bold" style={{ color: 'var(--gold)' }}>{data.total_found}</div>
+                <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--gold)' }}>
                   {data.total_found === 1 ? 'business' : 'businesses'}
                 </div>
               </div>
             </div>
 
-            {/* Summary stats */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="ui-info-box text-center">
-                <div className="mb-1 text-xs uppercase tracking-[0.16em] text-slate-400">Avg rating</div>
-                <div className="font-display text-xl font-semibold text-slate-900">{avgRatingDisplay}</div>
-              </div>
-              <div className="ui-info-box text-center">
-                <div className="mb-1 text-xs uppercase tracking-[0.16em] text-slate-400">Avg price</div>
-                <div className="font-display text-xl font-semibold text-slate-900">{priceLevelDisplay}</div>
-              </div>
-              <div className="ui-info-box text-center">
-                <div className="mb-1 text-xs uppercase tracking-[0.16em] text-slate-400">Strong</div>
-                <div className="font-display text-xl font-semibold text-amber-600">{data.strong_count ?? 0}</div>
-              </div>
-              <div className="ui-info-box text-center">
-                <div className="mb-1 text-xs uppercase tracking-[0.16em] text-slate-400">Weak</div>
-                <div className="font-display text-xl font-semibold text-emerald-600">{data.weak_count ?? 0}</div>
-              </div>
+            {/* Compact stats */}
+            <div className="grid grid-cols-4 gap-2">
+              <Stat label="Avg rating" value={data.avg_rating != null ? data.avg_rating.toFixed(1) : '—'} />
+              <Stat label="Avg price"  value={data.avg_price_level != null ? priceLevelLabel(Math.round(data.avg_price_level)) : '—'} />
+              <Stat label="Strong"     value={String(data.strong_count ?? 0)} accent="warn" />
+              <Stat label="Weak"       value={String(data.weak_count ?? 0)} accent="ok" />
             </div>
 
-            {/* Density badge */}
-            <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium ${densityColor(data.competitor_density)}`}>
-              <span className="h-2 w-2 rounded-full bg-current opacity-60" />
+            <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm" style={{ borderColor: 'var(--line-2)', background: 'var(--ink-2)', color: 'var(--paper-2)' }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--gold)' }} />
               {densityLabel(data.competitor_density)}
             </div>
 
-            {/* Map */}
             {draft.suburb && (
               <CompetitorMap
                 lat={draft.suburb.lat}
@@ -590,53 +280,191 @@ export default function ExplorePage() {
               />
             )}
 
-            {/* Business list */}
             {data.competitors.length > 0 ? (
               <div>
-                <h2 className="mb-3 font-display text-lg font-semibold text-slate-900">
-                  All businesses ({data.competitors.length})
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest" style={{ color: 'var(--paper-3)' }}>
+                  Nearby ({data.competitors.length})
                 </h2>
-                <div className="space-y-3">
-                  {data.competitors.map((place, i) => (
-                    <BusinessCard key={place.place_id} place={place} index={i} />
-                  ))}
+                <div className="space-y-2">
+                  {data.competitors.map((p, i) => <BusinessRow key={p.place_id} place={p} index={i} />)}
                 </div>
               </div>
             ) : (
-              <div className="ui-info-box py-8 text-center">
-                <MapPin className="mx-auto mb-3 h-8 w-8 text-slate-300" />
-                <div className="font-medium text-slate-900">No businesses found in this area</div>
-                <div className="mt-1 text-sm text-slate-500">
-                  Try a larger radius or different business type.
-                </div>
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="mt-4 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Adjust search
-                </button>
+              <div className="surface px-6 py-10 text-center">
+                <MapPin size={20} className="mx-auto mb-2" style={{ color: 'var(--paper-4)' }} />
+                <div className="text-sm font-medium" style={{ color: 'var(--paper)' }}>No businesses found</div>
+                <div className="mt-1 text-xs" style={{ color: 'var(--paper-3)' }}>Try a larger radius or different type.</div>
               </div>
             )}
 
-            {/* CTA → full report */}
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
-              <div className="mb-1 font-display text-lg font-semibold text-emerald-900">
-                This looks good — generate a full report
+            {/* CTA */}
+            <div className="surface p-6">
+              <div className="text-base font-semibold" style={{ color: 'var(--paper)' }}>
+                Ready to validate this opportunity?
               </div>
-              <p className="mb-4 text-sm leading-relaxed text-emerald-800">
-                Get AI-powered founder analysis: viability score, opportunity gaps, setup checklist, and expansion guidance — pre-filled with your location and business type.
+              <p className="mt-1 text-sm" style={{ color: 'var(--paper-3)' }}>
+                Run a full feasibility report — viability score, gaps, and a 90-day plan, pre-filled with this location.
               </p>
-              <Link
-                href={buildAnalyzeUrl()}
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-emerald-600"
-              >
-                Generate full report
-                <ArrowRight className="h-4 w-4" />
+              <Link href={analyzeUrl()} className="btn btn-gold mt-4">
+                Generate full report <ArrowUpRight size={14} />
               </Link>
             </div>
           </div>
         )}
+      </main>
+    </div>
+  )
+}
+
+// ─── Inner components ─────────────────────────────────────────────────────────
+
+function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--paper-3)' }}>
+        {label}
+      </label>
+      {children}
+    </div>
+  )
+}
+
+function Select({
+  options, value, onChange, placeholder = 'Select…',
+}: { options: readonly string[]; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div className="relative">
+      <select
+        className="input appearance-none pr-10"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+      >
+        <option value="">{placeholder}</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+      <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--paper-3)' }} />
+    </div>
+  )
+}
+
+function SuburbSearch({
+  state, selected, onSelect, onClear,
+}: { state: string; selected: AustraliaSuburb | null; onSelect: (s: AustraliaSuburb) => void; onClear: () => void }) {
+  const [query, setQuery] = useState(selected ? `${selected.suburb} ${selected.postcode}` : '')
+  const [results, setResults] = useState<AustraliaSuburb[]>([])
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (selected) setQuery(`${selected.suburb} ${selected.postcode}`)
+  }, [selected])
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    window.addEventListener('mousedown', onClick)
+    return () => window.removeEventListener('mousedown', onClick)
+  }, [])
+
+  function handleChange(v: string) {
+    setQuery(v)
+    if (!state || v.trim().length < 2) { setResults([]); setOpen(false); return }
+    const hits = searchSuburbs(state, v.trim())
+    setResults(hits)
+    setOpen(hits.length > 0)
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <div className="relative">
+        <MapPin size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: state ? 'var(--gold)' : 'var(--paper-4)' }} />
+        <input
+          ref={inputRef}
+          className="input pl-9 pr-9"
+          placeholder={state ? 'Search suburb or postcode…' : 'Select a state first'}
+          disabled={!state}
+          value={query}
+          onChange={e => handleChange(e.target.value)}
+          onFocus={() => { if (results.length > 0) setOpen(true) }}
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => { setQuery(''); setResults([]); setOpen(false); onClear(); inputRef.current?.focus() }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 transition-colors"
+            style={{ color: 'var(--paper-4)' }}
+          >
+            <X size={12} />
+          </button>
+        )}
+      </div>
+      {open && results.length > 0 && (
+        <ul className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-xl" style={{ background: 'var(--ink-2)', border: '1px solid var(--line-2)', boxShadow: 'var(--shadow-lg)' }}>
+          {results.map(s => (
+            <li key={`${s.suburb}-${s.postcode}`}>
+              <button
+                type="button"
+                onClick={() => { onSelect(s); setQuery(`${s.suburb} ${s.postcode}`); setOpen(false) }}
+                className="flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-[var(--ink-3)]"
+              >
+                <MapPin size={13} className="mt-0.5 shrink-0" style={{ color: 'var(--gold)' }} />
+                <span>
+                  <span className="font-medium" style={{ color: 'var(--paper)' }}>{s.suburb}</span>
+                  <span className="ml-2" style={{ color: 'var(--paper-4)' }}>{s.postcode}</span>
+                  <span className="ml-1" style={{ color: 'var(--paper-4)' }}>· {s.council}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function Stat({ label, value, accent }: { label: string; value: string; accent?: 'warn' | 'ok' }) {
+  const color = accent === 'warn' ? 'var(--warn)' : accent === 'ok' ? 'var(--ok)' : 'var(--paper)'
+  return (
+    <div className="surface px-3 py-3 text-center">
+      <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--paper-4)' }}>{label}</div>
+      <div className="mt-1 text-lg font-semibold" style={{ color }}>{value}</div>
+    </div>
+  )
+}
+
+function BusinessRow({ place, index }: { place: NearbyPlace; index: number }) {
+  return (
+    <div className="surface flex items-start gap-3 p-4">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+           style={{ background: 'var(--ink-1)', color: 'var(--paper-3)' }}>
+        {index + 1}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate text-sm font-semibold" style={{ color: 'var(--paper)' }}>{place.name}</span>
+          {place.competitor_strength && (
+            <span className="tag" style={{ fontSize: 10 }}>{strengthLabel(place.competitor_strength)}</span>
+          )}
+          {place.open_now != null && (
+            <span className="tag" style={{ fontSize: 10, color: place.open_now ? 'var(--ok)' : 'var(--paper-3)' }}>
+              {place.open_now ? 'Open' : 'Closed'}
+            </span>
+          )}
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs" style={{ color: 'var(--paper-3)' }}>
+          {place.address && <span className="truncate">{place.address}</span>}
+          {place.distance_km != null && <span>{place.distance_km}km</span>}
+          {place.rating != null && (
+            <span className="inline-flex items-center gap-1" style={{ color: 'var(--paper-2)' }}>
+              <Star size={11} className="fill-current" style={{ color: 'var(--gold)' }} />
+              {place.rating.toFixed(1)}
+              {place.review_count != null && <span style={{ color: 'var(--paper-4)' }}>({place.review_count})</span>}
+            </span>
+          )}
+          {place.price_level != null && <span>{priceLevelLabel(place.price_level)}</span>}
+        </div>
       </div>
     </div>
   )

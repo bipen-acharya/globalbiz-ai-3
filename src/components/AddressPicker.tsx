@@ -61,14 +61,14 @@ export function AddressPicker({ onSelect, onClear, selected, error, className }:
 
   if (loadError) {
     return (
-      <p className="text-sm text-red-500 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+      <p className="text-sm rounded-xl border px-4 py-3" style={{ borderColor: 'rgba(226,107,107,0.4)', background: 'rgba(226,107,107,0.08)', color: 'var(--danger)' }}>
         Failed to load Google Maps address search. Check your API key.
       </p>
     )
   }
 
   if (!isLoaded) {
-    return <input className={`form-input opacity-60 ${className ?? ''}`} placeholder="Loading address search…" disabled />
+    return <input className={`input opacity-60 ${className ?? ''}`} placeholder="Loading address search…" disabled />
   }
 
   return (
@@ -83,7 +83,7 @@ export function AddressPicker({ onSelect, onClear, selected, error, className }:
       >
         <input
           type="text"
-          className={`form-input ${error ? 'border-red-300 focus:border-red-400 focus:shadow-none' : ''} ${className ?? ''}`}
+          className={`input ${className ?? ''}`}
           placeholder="Start typing your business address or suburb…"
           defaultValue={selected?.formattedAddress ?? ''}
           onChange={() => {
@@ -92,14 +92,12 @@ export function AddressPicker({ onSelect, onClear, selected, error, className }:
         />
       </Autocomplete>
 
-      {error && !selected && <p className="mt-1 text-xs text-red-600">{error}</p>}
-
       {selected && (
-        <div className="mt-2 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5">
-          <CheckCircle size={14} className="text-emerald-500 mt-0.5 flex-shrink-0" />
+        <div className="mt-3 flex items-start gap-3 rounded-xl border px-4 py-3" style={{ borderColor: 'rgba(109,191,138,0.3)', background: 'rgba(109,191,138,0.06)' }}>
+          <CheckCircle size={14} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--ok)' }} />
           <div className="text-xs">
-            <p className="font-medium text-emerald-900">{selected.formattedAddress}</p>
-            <p className="mt-0.5 text-emerald-600">
+            <p className="font-medium" style={{ color: 'var(--paper)' }}>{selected.formattedAddress}</p>
+            <p className="mt-0.5" style={{ color: 'var(--paper-3)' }}>
               {[selected.suburb, selected.state, selected.postcode].filter(Boolean).join(' · ')}
             </p>
           </div>

@@ -5,50 +5,58 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['var(--font-plus-jakarta)', 'system-ui', 'sans-serif'],
-        sans:    ['var(--font-plus-jakarta)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-body)', 'system-ui', 'sans-serif'],
+        sans:    ['var(--font-body)', 'system-ui', 'sans-serif'],
+        serif:   ['var(--font-body)', 'system-ui', 'sans-serif'],
         mono:    ['ui-monospace', 'monospace'],
       },
       colors: {
-        brand: {
-          50:  '#EFF6FF',
-          100: '#DBEAFE',
-          200: '#BFDBFE',
-          500: '#3B82F6',
-          600: '#2563EB',
-          700: '#1D4ED8',
-          800: '#1E40AF',
-          900: '#1E3A8A',
+        // ink scale (was dark; now light surfaces)
+        ink: {
+          0: '#FFFFFF',
+          1: '#FAFAF7',
+          2: '#FFFFFF',
+          3: '#F4F4F1',
+          4: '#ECECE6',
         },
+        // paper (was off-white; now dark text)
+        paper: {
+          DEFAULT: '#0A0A0A',
+          2: '#3A3A3A',
+          3: '#6B6B6B',
+          4: '#9A9A9A',
+        },
+        // accent — indigo (was gold)
+        gold: {
+          DEFAULT: '#4F46E5',
+          2: '#6366F1',
+        },
+        line: 'rgba(15,15,15,0.06)',
+        'line-2': 'rgba(15,15,15,0.10)',
+        'line-3': 'rgba(15,15,15,0.18)',
+      },
+      boxShadow: {
+        soft: '0 1px 2px rgba(15, 15, 15, 0.04)',
+        elevated: '0 4px 16px rgba(15, 15, 15, 0.06)',
+        floating: '0 16px 48px -12px rgba(15, 15, 15, 0.10)',
       },
       animation: {
-        'fade-up':    'fadeUp 0.6s ease-out both',
-        'fade-in':    'fadeIn 0.5s ease-out both',
-        'float':      'float 4s ease-in-out infinite',
-        'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
-        'score-fill': 'scoreFill 1.2s ease forwards',
-        'pulse-slow': 'pulse 3s ease-in-out infinite',
+        'fade-up':  'fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'fade-in':  'fadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'drift':    'drift 5s ease-in-out infinite',
       },
       keyframes: {
         fadeUp: {
-          '0%':   { opacity: '0', transform: 'translateY(24px)' },
+          '0%':   { opacity: '0', transform: 'translateY(20px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         fadeIn: {
           '0%':   { opacity: '0' },
           '100%': { opacity: '1' },
         },
-        float: {
+        drift: {
           '0%, 100%': { transform: 'translateY(0px)' },
-          '50%':      { transform: 'translateY(-8px)' },
-        },
-        pulseGlow: {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(37, 99, 235, 0.4)' },
-          '50%':      { boxShadow: '0 0 0 12px rgba(37, 99, 235, 0)' },
-        },
-        scoreFill: {
-          '0%':   { width: '0%' },
-          '100%': { width: 'var(--score-width)' },
+          '50%':      { transform: 'translateY(-6px)' },
         },
       },
     },

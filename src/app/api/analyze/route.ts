@@ -1,202 +1,122 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/analyze
+// Controller: validates input, runs scoring + AI analysis, returns the report.
+// No persistence — client stores the report in sessionStorage.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { NextRequest, NextResponse } from 'next/server'
-import { generateAnalysis } from '@/lib/openai'
+import { generateAnalysis } from '@/services/analysisService'
 import { fetchNearbyCompetitors } from '@/lib/maps'
 import { runScoringEngine } from '@/lib/scoring-engine'
-import type { BusinessFormData, AnalyzeSuccessResponse, AnalyzeErrorResponse } from '@/types'
-import { getEffectiveBusinessType } from '@/lib/australia-business-rules'
+import { checkAndRecordReport } from '@/services/usageStore'
+import { notifyReportGenerated } from '@/services/notifyService'
+import { activeProvider } from '@/services/aiClient'
 import { normalizeReportInput } from '@/lib/report-input'
-
-const LIMIT = parseInt(process.env.DAILY_REPORT_LIMIT ?? '10', 10)
+import { getEffectiveBusinessType } from '@/lib/australia-business-rules'
+import type { BusinessFormData, AnalyzeSuccessResponse, AnalyzeErrorResponse } from '@/types'
 
 function jsonError(msg: string, status: number): NextResponse<AnalyzeErrorResponse> {
   return NextResponse.json<AnalyzeErrorResponse>({ success: false, error: msg }, { status })
 }
 
-async function getDB() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error('Supabase not configured')
-  const { createClient } = await import('@supabase/supabase-js')
-  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
-}
-
-async function checkAndIncrementUsage(today: string): Promise<boolean> {
-  let db
-  try { db = await getDB() } catch { return true }
-
-  const { data, error } = await db
-    .from('daily_usage').select('id, count, limit_val').eq('usage_date', today).maybeSingle()
-  if (error) return true
-
-  if (data) {
-    if (data.count >= (data.limit_val ?? LIMIT)) return false
-    await db.from('daily_usage').update({ count: data.count + 1 }).eq('id', data.id)
-    return true
-  }
-
-  const { error: insErr } = await db
-    .from('daily_usage').insert({ usage_date: today, count: 1, limit_val: LIMIT })
-  if (insErr) {
-    const { data: raced } = await db
-      .from('daily_usage').select('id, count, limit_val').eq('usage_date', today).maybeSingle()
-    if (raced) {
-      if (raced.count >= (raced.limit_val ?? LIMIT)) return false
-      await db.from('daily_usage').update({ count: raced.count + 1 }).eq('id', raced.id)
-    }
-  }
-  return true
-}
-
-async function saveReport(form: BusinessFormData, analysis: object, today: string): Promise<string | null> {
-  let db
-  try { db = await getDB() } catch { return null }
-
-  const effectiveBusinessType = getEffectiveBusinessType(form)
-
-  const { data, error } = await db
-    .from('reports')
-    .insert({
-      business_model_type: form.business_model_type,
-      country:             'Australia',
-      state_province:      form.state,
-      city:                form.city,
-      suburb:              form.suburb || null,
-      postcode:            form.postcode || null,
-      radius_km:           form.radius_km,
-      lat:                 form.lat || null,
-      lng:                 form.lng || null,
-      business_type:       effectiveBusinessType,
-      products_services:   form.products_services,
-      avg_price_range:     form.avg_price_range || null,
-      startup_budget:      form.startup_budget || null,
-      staff_count:         form.staff_count,
-      operating_hours:     form.operating_hours || null,
-      target_customers:    form.target_customers.join(', ') || null,
-      target_market:       form.target_market || null,
-      ad_budget_monthly:   form.ad_budget_monthly || null,
-      delivery_coverage:   form.delivery_coverage === 'Custom coverage' ? form.delivery_coverage_custom || form.delivery_coverage : form.delivery_coverage || null,
-      community_type:      form.community_type || null,
-      income_level:        form.income_level || null,
-      target_age_group:    form.target_age_groups.join(', ') || null,
-      audience_type:       form.audience_types.join(', ') || null,
-      delivery_needed:     form.delivery_needed,
-      expected_revenue:    form.expected_revenue || null,
-      launch_timeline:     form.launch_timeline || null,
-      growth_goal:         form.growth_goal || null,
-      risk_tolerance:      form.risk_tolerance || null,
-      analysis,
-      usage_date:          today,
-    })
-    .select('id').single()
-
-  if (error) { console.error('[save]', error.message); return null }
-  return data?.id ?? null
-}
-
-export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeSuccessResponse | AnalyzeErrorResponse>> {
-  // 0. Guard: require OpenAI key before doing any work
-  if (!process.env.OPENAI_API_KEY) {
-    console.error('[analyze] OPENAI_API_KEY is not configured — set it in .env.local')
-    return jsonError('Service not configured. Please contact support.', 500)
-  }
-
-  // 1. Parse
-  let form: BusinessFormData
-  try {
-    if (!(req.headers.get('content-type') ?? '').includes('application/json'))
-      return jsonError('Content-Type must be application/json', 400)
-    form = normalizeReportInput(await req.json())
-  } catch (err) {
-    console.error('[analyze] JSON parse error:', err)
-    return jsonError('Invalid JSON body', 400)
-  }
-
-  // 2. Validate
+function validate(form: BusinessFormData): string | null {
   const isPhysical = form.business_model_type === 'physical' || form.business_model_type === 'hybrid'
   const isOnline = form.business_model_type === 'online' || form.business_model_type === 'hybrid'
 
-  if (!form.user_goal_mode) return jsonError('user_goal_mode is required', 422)
-  if (!form.state?.trim()) return jsonError('state is required', 422)
-  if (isPhysical && !form.suburb?.trim()) return jsonError('suburb is required for physical or hybrid businesses', 422)
-  if (isOnline && !form.delivery_coverage?.trim()) return jsonError('delivery_coverage is required for online or hybrid businesses', 422)
-  if (form.delivery_coverage === 'Custom coverage' && !form.delivery_coverage_custom?.trim()) return jsonError('delivery_coverage_custom is required', 422)
-  if (!form.business_type?.trim()) return jsonError('business_type is required', 422)
-  if (form.user_goal_mode === 'start_new' && !form.business_concept?.trim()) return jsonError('business_concept is required', 422)
-  if (!form.products_services?.trim()) return jsonError('products_services is required', 422)
-  if (!form.avg_price_range?.trim()) return jsonError('avg_price_range is required', 422)
-  if (form.user_goal_mode === 'start_new' && (!Array.isArray(form.target_customers) || form.target_customers.length === 0)) return jsonError('target_customers is required', 422)
-  if (form.user_goal_mode === 'start_new' && parseInt(form.expected_revenue?.replace(/\D/g, '') || '0', 10) <= 0) return jsonError('expected_revenue must be greater than 0', 422)
-  if (form.user_goal_mode === 'start_new' && parseInt(form.startup_budget?.replace(/\D/g, '') || '0', 10) <= 0) return jsonError('startup_budget must be greater than 0', 422)
-  if (form.user_goal_mode === 'grow_existing' && parseInt(form.current_monthly_revenue?.replace(/\D/g, '') || '0', 10) <= 0) return jsonError('current_monthly_revenue must be greater than 0', 422)
-  if (form.user_goal_mode === 'grow_existing' && (!Array.isArray(form.current_challenges) || form.current_challenges.length === 0)) return jsonError('current_challenges is required', 422)
-  if (form.user_goal_mode === 'grow_existing' && !form.growth_strategy_type?.trim()) return jsonError('growth_strategy_type is required', 422)
-  if (form.user_goal_mode === 'grow_existing' && !isOnline && !form.current_location_suburb?.trim()) return jsonError('current_location_suburb is required', 422)
-  if (form.user_goal_mode === 'grow_existing' && !form.business_name?.trim()) return jsonError('business_name is required', 422)
+  if (!form.user_goal_mode) return 'user_goal_mode is required'
+  if (!form.state?.trim()) return 'state is required'
+  if (isPhysical && !form.suburb?.trim()) return 'suburb is required for physical or hybrid businesses'
+  if (isOnline && !form.delivery_coverage?.trim()) return 'delivery_coverage is required for online or hybrid businesses'
+  if (form.delivery_coverage === 'Custom coverage' && !form.delivery_coverage_custom?.trim()) return 'delivery_coverage_custom is required'
+  if (!form.business_type?.trim()) return 'business_type is required'
+  if (form.user_goal_mode === 'start_new' && !form.business_concept?.trim()) return 'business_concept is required'
+  if (!form.products_services?.trim()) return 'products_services is required'
+  if (!form.avg_price_range?.trim()) return 'avg_price_range is required'
+  if (form.user_goal_mode === 'start_new') {
+    if (!Array.isArray(form.target_customers) || form.target_customers.length === 0) return 'target_customers is required'
+    if (parseInt(form.expected_revenue?.replace(/\D/g, '') || '0', 10) <= 0) return 'expected_revenue must be greater than 0'
+    if (parseInt(form.startup_budget?.replace(/\D/g, '') || '0', 10) <= 0) return 'startup_budget must be greater than 0'
+  }
+  return null
+}
 
-  // 3. Daily cap
-  const today = new Date().toISOString().split('T')[0]
-  const allowed = await checkAndIncrementUsage(today)
-  if (!allowed) return jsonError('DAILY_LIMIT_REACHED', 429)
+export async function POST(req: NextRequest): Promise<NextResponse<AnalyzeSuccessResponse | AnalyzeErrorResponse>> {
+  if (activeProvider() === 'none') {
+    return jsonError('Service not configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.', 500)
+  }
 
-  // 4. Fetch real nearby competitors
+  let form: BusinessFormData
+  try {
+    if (!(req.headers.get('content-type') ?? '').includes('application/json')) {
+      return jsonError('Content-Type must be application/json', 400)
+    }
+    form = normalizeReportInput(await req.json())
+  } catch {
+    return jsonError('Invalid JSON body', 400)
+  }
+
+  const validationError = validate(form)
+  if (validationError) return jsonError(validationError, 422)
+
+  // Usage caps — lifetime beta cap + daily cost protection
+  const usage = await checkAndRecordReport()
+  if (!usage.allowed) return jsonError(usage.reason, 429)
+
+  // Fetch real nearby competitors
   let nearby = null
   try {
     const effectiveBusinessType = getEffectiveBusinessType(form)
-    if (isPhysical) {
-      nearby = await fetchNearbyCompetitors({
-        lat: form.lat,
-        lng: form.lng,
-        radiusKm: form.radius_km || 3,
-        businessType: effectiveBusinessType,
-        businessModelType: form.business_model_type,
-        productsServices: form.products_services,
-        suburb: form.suburb || form.city || '',
-        state: form.state,
-        postcode: form.postcode,
-      })
-    } else {
-      nearby = await fetchNearbyCompetitors({
-        lat: form.lat,
-        lng: form.lng,
-        radiusKm: form.radius_km || 5,
-        businessType: effectiveBusinessType,
-        businessModelType: form.business_model_type,
-        productsServices: form.products_services,
-        suburb: form.target_market || form.state,
-        state: form.state,
-        postcode: form.postcode,
-      })
-    }
+    const isPhysical = form.business_model_type === 'physical' || form.business_model_type === 'hybrid'
+    nearby = await fetchNearbyCompetitors({
+      lat: form.lat,
+      lng: form.lng,
+      radiusKm: form.radius_km || (isPhysical ? 3 : 5),
+      businessType: effectiveBusinessType,
+      businessModelType: form.business_model_type,
+      productsServices: form.products_services,
+      suburb: (isPhysical ? form.suburb || form.city : form.target_market || form.state) ?? '',
+      state: form.state,
+      postcode: form.postcode,
+    })
   } catch (err) {
-    console.warn('[route] competitor fetch error:', err)
+    console.warn('[analyze] competitor fetch error:', err)
   }
 
-  // 5. Run scoring engine — formula-driven, no static seeds
+  // Scoring (formula-driven)
   const scores = runScoringEngine({ form, nearby })
 
-  // 6. Generate AI analysis (scores are pre-locked, AI only writes text)
+  // AI analysis (text only — scores are locked)
   let analysis
   try {
     analysis = await generateAnalysis(form, nearby, scores)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[analyze] generateAnalysis failed:', msg)
-    if (msg.includes('OPENAI_API_KEY') || msg.includes('not set')) {
-      return jsonError('OpenAI API key is not configured. Add OPENAI_API_KEY to .env.local', 500)
-    }
     return jsonError('Failed to generate analysis. Please try again.', 500)
   }
 
-  // 7. Save
-  let reportId = await saveReport(form, analysis, today)
-  const usingTempId = !reportId
-  if (!reportId) reportId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+  const reportId = `r_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+
+  // Admin alert — fire and forget, never blocks the response
+  void notifyReportGenerated({
+    flow: 'New business',
+    businessType: form.business_type,
+    state: form.state,
+    suburb: form.suburb,
+    topScores: [
+      { label: 'Viability', value: scores.success_score },
+      { label: 'Opportunity gap', value: scores.opportunity_gap_score },
+      { label: 'Failure risk', value: scores.failure_risk_score },
+    ],
+    totalReports: usage.total,
+    totalLimit: usage.totalLimit,
+  })
 
   return NextResponse.json<AnalyzeSuccessResponse>({
     success: true,
     reportId,
     report: analysis,
-    _temp: usingTempId,
+    _temp: true,
   })
 }
 

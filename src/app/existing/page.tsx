@@ -84,9 +84,9 @@ function Field({ label, hint, error, children }: { label: string; hint?: string;
   return (
     <div>
       <label className="ui-label mb-1.5 block">{label}</label>
-      {hint && <p className="mb-2 text-xs text-slate-500">{hint}</p>}
+      {hint && <p className="mb-2 text-xs" style={{ color: 'var(--paper-4)' }}>{hint}</p>}
       {children}
-      {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1.5 text-xs" style={{ color: 'var(--danger)' }}>{error}</p>}
     </div>
   )
 }
@@ -119,13 +119,41 @@ function SelectField({
   )
 }
 
+// ─── URL helpers ──────────────────────────────────────────────────────────────
+
+function normaliseUrl(raw: string): string {
+  const trimmed = raw.trim()
+  if (!trimmed) return ''
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
+function isValidUrl(value: string): boolean {
+  try {
+    const u = new URL(value)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
+    // Must have a domain with at least one dot
+    if (!u.hostname.includes('.')) return false
+    return true
+  } catch {
+    return false
+  }
+}
+
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
 function StepDots({ step }: { step: 1 | 2 }) {
   return (
     <div className="flex items-center gap-2">
       {([1, 2] as const).map(n => (
-        <div key={n} className={`h-2 rounded-full transition-all ${n === step ? 'w-8 bg-blue-600' : n < step ? 'w-2 bg-blue-300' : 'w-2 bg-slate-200'}`} />
+        <div
+          key={n}
+          className="h-2 rounded-full transition-all"
+          style={{
+            width: n === step ? 28 : 8,
+            background: n === step ? 'var(--gold)' : n < step ? 'var(--gold-2)' : 'var(--line-3)',
+          }}
+        />
       ))}
     </div>
   )
@@ -153,10 +181,10 @@ function LoadingOverlay({ visible }: { visible: boolean }) {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-2xl">
-        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
-        <div className="font-display text-base font-semibold text-slate-900">{LOADING_MESSAGES[msgIdx]}</div>
-        <p className="mt-2 text-sm text-slate-500">Building your turnaround report…</p>
+      <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--ink-0)', border: '1px solid var(--line-2)', boxShadow: 'var(--shadow-lg)' }}>
+        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4" style={{ borderColor: 'var(--gold-soft)', borderTopColor: 'var(--gold)' }} />
+        <div className="font-display text-base font-semibold" style={{ color: 'var(--paper)' }}>{LOADING_MESSAGES[msgIdx]}</div>
+        <p className="mt-2 text-sm" style={{ color: 'var(--paper-3)' }}>Building your turnaround report…</p>
       </div>
     </div>
   )
@@ -196,24 +224,28 @@ function LocationTypeSelector({
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-3">
-      {LOCATION_TYPE_OPTIONS.map(opt => (
-        <button
-          key={opt.value}
-          type="button"
-          onClick={() => onChange(opt.value)}
-          className={`flex flex-col items-center gap-2 rounded-xl border px-4 py-4 text-center transition-all ${
-            value === opt.value
-              ? 'border-blue-500 bg-blue-50 shadow-sm'
-              : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50'
-          }`}
-        >
-          <span className={value === opt.value ? 'text-blue-600' : 'text-slate-500'}>{opt.icon}</span>
-          <span className={`text-sm font-semibold ${value === opt.value ? 'text-blue-700' : 'text-slate-800'}`}>
-            {opt.label}
-          </span>
-          <span className="text-xs text-slate-500 leading-relaxed">{opt.description}</span>
-        </button>
-      ))}
+      {LOCATION_TYPE_OPTIONS.map(opt => {
+        const active = value === opt.value
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            className="flex flex-col items-center gap-2 rounded-xl px-4 py-4 text-center transition-all"
+            style={{
+              border: `1px solid ${active ? 'var(--gold)' : 'var(--line-2)'}`,
+              background: active ? 'var(--gold-soft)' : 'var(--ink-0)',
+              boxShadow: active ? '0 0 0 3px var(--gold-soft)' : 'none',
+            }}
+          >
+            <span style={{ color: active ? 'var(--gold)' : 'var(--paper-3)' }}>{opt.icon}</span>
+            <span className="text-sm font-semibold" style={{ color: active ? 'var(--gold)' : 'var(--paper)' }}>
+              {opt.label}
+            </span>
+            <span className="text-xs leading-relaxed" style={{ color: 'var(--paper-3)' }}>{opt.description}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -323,6 +355,37 @@ export default function ExistingPage() {
     setLoading(true)
     setSubmitError(null)
 
+    // ── For online businesses: validate URL format, then optionally scrape for enrichment ──
+    if (needsWebsite && form.website_url.trim()) {
+      const normalised = normaliseUrl(form.website_url.trim())
+      if (!isValidUrl(normalised)) {
+        setSubmitError('That website URL doesn\'t look valid. Please enter a full address like https://yourbusiness.com.au')
+        setLoading(false)
+        setStep(1)
+        setErrors(prev => ({ ...prev, website_url: 'Invalid URL format.' }))
+        return
+      }
+
+      // Patch with normalised URL immediately — always proceed regardless of scrape result
+      patch({ website_url: normalised })
+
+      // Attempt scrape for content enrichment (optional — many sites block server-side fetches)
+      try {
+        const scrapeRes = await fetch('/api/scrape-website', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: normalised }),
+        })
+        const scrapeJson = await scrapeRes.json()
+        // If we got useful content, auto-fill a sparse description
+        if (scrapeJson.success && scrapeJson.data?.description && !form.description.trim()) {
+          patch({ description: scrapeJson.data.description })
+        }
+      } catch {
+        // Scrape failed (network, bot-block, timeout) — that's fine, proceed without it
+      }
+    }
+
     const payload: ExistingBusinessFormData = needsAddress && place
       ? {
           ...form,
@@ -349,6 +412,10 @@ export default function ExistingPage() {
       const json = await res.json()
 
       if (!res.ok || !json.success) {
+        if (json.error === 'TOTAL_LIMIT_REACHED') {
+          router.push('/coming-soon')
+          return
+        }
         if (json.error === 'DAILY_LIMIT_REACHED') {
           setSubmitError('Today\'s report limit has been reached. Please try again tomorrow or join the waitlist.')
         } else {
@@ -394,18 +461,24 @@ export default function ExistingPage() {
     <>
       <LoadingOverlay visible={loading} />
 
-      <div className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="min-h-screen" style={{ background: 'var(--ink-1)', color: 'var(--paper)' }}>
         {/* Nav */}
-        <nav className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur-md">
-          <Link href="/" className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">
+        <nav className="sticky top-0 z-40 flex items-center justify-between px-6 py-3.5 backdrop-blur-md nav-blur">
+          <Link href="/" className="flex items-center gap-2 transition-colors" style={{ color: 'var(--paper-3)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--paper)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--paper-3)')}
+          >
             <ArrowLeft className="h-4 w-4" />
-            <span className="font-display text-base font-bold text-slate-900">GlobalBiz <span className="text-blue-600">AI</span></span>
+            <span className="font-display text-base font-bold" style={{ color: 'var(--paper)' }}>
+              GlobalBiz <span style={{ color: 'var(--gold)' }}>AI</span>
+            </span>
           </Link>
           <div className="flex items-center gap-3">
             <StepDots step={step} />
             {step === 2 && (
               <button type="button" onClick={() => setStep(1)}
-                className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900">
+                className="flex items-center gap-1.5 text-sm transition-colors"
+                style={{ color: 'var(--paper-3)' }}>
                 <ArrowLeft className="h-4 w-4" /> Back
               </button>
             )}
@@ -416,34 +489,34 @@ export default function ExistingPage() {
 
           {/* ── STEP 1 ── */}
           {step === 1 && (
-            <div className="fade-up space-y-6">
+            <div className="fade-up space-y-5">
               <div>
-                <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-xs font-medium text-blue-700">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-wide" style={{ background: 'var(--gold-soft)', color: 'var(--gold)', border: '1px solid rgba(79,70,229,0.18)' }}>
                   Step 1 of 2 · About your business
                 </div>
-                <h1 className="mt-3 font-display text-3xl font-bold text-slate-900">
+                <h1 className="font-display text-3xl font-bold" style={{ color: 'var(--paper)' }}>
                   Tell us about your business
                 </h1>
-                <p className="mt-2 text-base leading-relaxed text-slate-600">
+                <p className="mt-2 text-base leading-relaxed" style={{ color: 'var(--paper-3)' }}>
                   We&apos;ll use this to find competitors, assess your market, and build a focused turnaround plan.
                 </p>
               </div>
 
               {/* Business type selector — FIRST question */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="font-display text-base font-semibold text-slate-900 mb-4">
+              <div className="rounded-2xl p-5" style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+                <h2 className="font-display text-sm font-semibold mb-4" style={{ color: 'var(--paper)' }}>
                   Is your business Physical, Online, or Both? *
                 </h2>
                 <LocationTypeSelector value={form.location_type} onChange={setLocationType} />
               </div>
 
               {/* Location section — conditional on type */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
-                <h2 className="font-display text-base font-semibold text-slate-900">Location &amp; online presence</h2>
+              <div className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+                <h2 className="font-display text-sm font-semibold" style={{ color: 'var(--paper)' }}>Location &amp; online presence</h2>
 
                 {/* Physical / Both — Google Maps address picker */}
                 {needsAddress && (
-                  <div className="space-y-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="space-y-4 rounded-xl p-4" style={{ background: 'var(--ink-1)', border: '1px solid var(--line)' }}>
                     <Field label="Business address *" error={errors.place}>
                       <AddressPicker
                         onSelect={p => {
@@ -480,7 +553,7 @@ export default function ExistingPage() {
 
                 {/* Online only — country + state */}
                 {isOnline && (
-                  <div className="space-y-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="space-y-4 rounded-xl p-4" style={{ background: 'var(--ink-1)', border: '1px solid var(--line)' }}>
                     <Field label="Country *">
                       <SelectField
                         options={COUNTRIES}
@@ -543,8 +616,8 @@ export default function ExistingPage() {
               </div>
 
               {/* Business details */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
-                <h2 className="font-display text-base font-semibold text-slate-900">Business details</h2>
+              <div className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+                <h2 className="font-display text-sm font-semibold" style={{ color: 'var(--paper)' }}>Business details</h2>
 
                 <Field label="Business name *" error={errors.business_name}>
                   <input
@@ -618,7 +691,8 @@ export default function ExistingPage() {
               <button
                 type="button"
                 onClick={goToStep2}
-                className="w-full ui-primary-btn py-4 text-base rounded-xl"
+                className="btn btn-gold w-full rounded-xl"
+                style={{ paddingTop: 14, paddingBottom: 14, fontSize: '0.9375rem' }}
               >
                 Next — what&apos;s the challenge?
                 <ArrowRight className="h-4 w-4" />
@@ -628,38 +702,45 @@ export default function ExistingPage() {
 
           {/* ── STEP 2 ── */}
           {step === 2 && (
-            <div className="fade-up space-y-6">
+            <div className="fade-up space-y-5">
               <div>
-                <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-xs font-medium text-blue-700">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-wide" style={{ background: 'var(--gold-soft)', color: 'var(--gold)', border: '1px solid rgba(79,70,229,0.18)' }}>
                   Step 2 of 2 · What&apos;s not working
                 </div>
-                <h1 className="mt-3 font-display text-3xl font-bold text-slate-900">
+                <h1 className="font-display text-3xl font-bold" style={{ color: 'var(--paper)' }}>
                   What&apos;s the challenge?
                 </h1>
-                <p className="mt-2 text-base leading-relaxed text-slate-600">
+                <p className="mt-2 text-base leading-relaxed" style={{ color: 'var(--paper-3)' }}>
                   The more detail you share, the more targeted your turnaround plan will be.
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-7">
+              <div className="rounded-2xl p-5 space-y-6" style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
 
                 {/* Problems multi-select */}
                 <div>
                   <label className="ui-label mb-3 block">
-                    What&apos;s the main problem? <span className="font-normal text-slate-400">(select all that apply)</span>
+                    What&apos;s the main problem? <span className="font-normal" style={{ color: 'var(--paper-4)' }}>(select all that apply)</span>
                   </label>
                   <div className="space-y-2">
                     {PROBLEM_OPTIONS.map(p => {
                       const checked = form.problems.includes(p)
                       return (
-                        <label key={p} className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-all ${checked ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                        <label key={p}
+                          className="flex cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition-all"
+                          style={{
+                            border: `1px solid ${checked ? 'var(--gold)' : 'var(--line-2)'}`,
+                            background: checked ? 'var(--gold-soft)' : 'var(--ink-0)',
+                          }}
+                        >
                           <input
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleProblem(p)}
-                            className="h-4 w-4 rounded border-slate-300 text-blue-600 accent-blue-600"
+                            className="h-4 w-4 rounded"
+                            style={{ accentColor: 'var(--gold)' }}
                           />
-                          <span className={`text-sm font-medium ${checked ? 'text-blue-800' : 'text-slate-700'}`}>{p}</span>
+                          <span className="text-sm font-medium" style={{ color: checked ? 'var(--gold)' : 'var(--paper-2)' }}>{p}</span>
                         </label>
                       )
                     })}
@@ -695,19 +776,29 @@ export default function ExistingPage() {
                   <label className="ui-label mb-3 block">What do you want to do next? *</label>
                   {errors.owner_goal && <p className="mb-2 text-xs text-red-600">{errors.owner_goal}</p>}
                   <div className="space-y-2">
-                    {OWNER_GOAL_OPTIONS.map(g => (
-                      <label key={g} className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-all ${form.owner_goal === g ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                        <input
-                          type="radio"
-                          name="owner_goal"
-                          value={g}
-                          checked={form.owner_goal === g}
-                          onChange={() => patch({ owner_goal: g })}
-                          className="h-4 w-4 border-slate-300 text-blue-600 accent-blue-600"
-                        />
-                        <span className={`text-sm font-medium ${form.owner_goal === g ? 'text-blue-800' : 'text-slate-700'}`}>{g}</span>
-                      </label>
-                    ))}
+                    {OWNER_GOAL_OPTIONS.map(g => {
+                      const active = form.owner_goal === g
+                      return (
+                        <label key={g}
+                          className="flex cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition-all"
+                          style={{
+                            border: `1px solid ${active ? 'var(--gold)' : 'var(--line-2)'}`,
+                            background: active ? 'var(--gold-soft)' : 'var(--ink-0)',
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            name="owner_goal"
+                            value={g}
+                            checked={active}
+                            onChange={() => patch({ owner_goal: g })}
+                            className="h-4 w-4"
+                            style={{ accentColor: 'var(--gold)' }}
+                          />
+                          <span className="text-sm font-medium" style={{ color: active ? 'var(--gold)' : 'var(--paper-2)' }}>{g}</span>
+                        </label>
+                      )
+                    })}
                   </div>
                 </div>
 
@@ -733,23 +824,24 @@ export default function ExistingPage() {
               </div>
 
               {/* Step 1 summary */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="mb-2 text-xs uppercase tracking-[0.18em] text-slate-400">Analysing</div>
-                <div className="font-display font-semibold text-slate-900">{form.business_name || form.business_type}</div>
-                <div className="mt-1 text-sm text-slate-500">
+              <div className="rounded-2xl p-4" style={{ background: 'var(--ink-1)', border: '1px solid var(--line)' }}>
+                <div className="mb-1.5 text-xs uppercase tracking-[0.18em]" style={{ color: 'var(--paper-4)' }}>Analysing</div>
+                <div className="font-display font-semibold" style={{ color: 'var(--paper)' }}>{form.business_name || form.business_type}</div>
+                <div className="mt-1 text-sm" style={{ color: 'var(--paper-3)' }}>
                   {[
                     form.location_type === 'online' ? 'Online business' : place?.suburb ?? form.suburb,
                     form.state,
                     form.years_operating ? `${form.years_operating} operating` : null,
                   ].filter(Boolean).join(' · ')}
                 </div>
-                <button type="button" onClick={() => setStep(1)} className="mt-2 text-xs text-blue-600 hover:text-blue-700">
+                <button type="button" onClick={() => setStep(1)} className="mt-2 text-xs font-medium transition-colors"
+                  style={{ color: 'var(--gold)' }}>
                   Edit details →
                 </button>
               </div>
 
               {submitError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-xl px-4 py-3 text-sm" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B' }}>
                   {submitError}
                 </div>
               )}
@@ -758,7 +850,8 @@ export default function ExistingPage() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading}
-                className="w-full ui-primary-btn py-4 text-base rounded-xl disabled:opacity-60"
+                className="btn btn-gold w-full rounded-xl disabled:opacity-60"
+                style={{ paddingTop: 14, paddingBottom: 14, fontSize: '0.9375rem' }}
               >
                 {loading ? (
                   <>
