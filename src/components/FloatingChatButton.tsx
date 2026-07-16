@@ -93,7 +93,7 @@ export default function FloatingChatButton() {
         style={{
           background: 'var(--gold)',
           color: '#FFFFFF',
-          boxShadow: '0 14px 32px -10px rgba(79, 70, 229, 0.45)',
+          boxShadow: '0 14px 32px -10px rgba(52, 72, 176, 0.45)',
         }}
       >
         {open ? <X size={18} /> : <MessageCircle size={18} />}

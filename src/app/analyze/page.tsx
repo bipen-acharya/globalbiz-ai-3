@@ -6,6 +6,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, ArrowUpRight, ChevronDown, Globe, Loader2, MapPin,
 } from 'lucide-react'
+import { SiteHeader, BackLink } from '@/components/SiteHeader'
 import { AddressPicker } from '@/components/AddressPicker'
 import type { PlaceResult } from '@/components/AddressPicker'
 import LoadingOverlay from '@/components/analyze/LoadingOverlay'
@@ -226,22 +227,11 @@ export default function AnalyzePage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--ink-0)', color: 'var(--paper)' }}>
-      {/* Nav */}
-      <nav className="nav-blur sticky top-0 z-40">
-        <div className="container-wide flex items-center justify-between py-5">
-          <Link href="/" className="flex items-center gap-2 text-sm transition-colors" style={{ color: 'var(--paper-3)' }}>
-            <ArrowLeft size={16} /> Back
-          </Link>
-          <Link href="/" className="flex items-center gap-3">
-            <span className="block h-2 w-2 rounded-full" style={{ background: 'var(--gold)' }} />
-            <span className="font-display text-lg">GlobalBiz <span style={{ color: "var(--gold)" }}>AI</span></span>
-          </Link>
-          <div className="w-12" />
-        </div>
-      </nav>
+      <SiteHeader />
 
       <main className="container-text pt-12 pb-24">
         <header className="anim-fade-up">
+          <BackLink href="/" label="Back to home" />
           <div className="eyebrow">Founder report · Free</div>
           <h1 className="display mt-6" style={{ fontSize: 'var(--t-h1)' }}>
             Tell us about<br /><em>the business</em>.

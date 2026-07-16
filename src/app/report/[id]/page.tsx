@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Download, Share2, MapPin, TrendingUp, AlertTriangle, CheckCircle, Clock, ChevronRight, Building2 } from 'lucide-react'
+import { Download, Share2, MapPin, TrendingUp, AlertTriangle, CheckCircle, Clock, ChevronRight, Building2 } from 'lucide-react'
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts'
 import type { Report, AnalysisResult } from '@/types'
 import { safeScore, scoreColor, scoreBarColor, scoreLabel, riskLabel, riskColor } from '@/lib/utils'
+import { SiteHeader } from '@/components/SiteHeader'
 import { NearbyCompetitors } from '@/components/report/NearbyCompetitors'
 import { OpportunityGap } from '@/components/report/OpportunityGap'
 import { CompetitorMap } from '@/components/report/CompetitorMap'
@@ -284,32 +285,25 @@ export default function ReportPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      {/* Nav */}
-      <div
-        className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-white/95 backdrop-blur-sm border-b border-slate-200"
-      >
-        <Link href="/" className="flex items-center gap-2 text-sm text-slate-500 transition-colors hover:text-slate-900">
-          <ArrowLeft size={16} /> Home
-        </Link>
-        <span className="font-display font-bold text-sm text-slate-900">
-          GlobalBiz <span className="gradient-text">AI</span>
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleShare}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition-all hover:bg-slate-50"
-          >
-            <Share2 size={13} /> Share
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-all"
-            style={{ border: '1px solid var(--gold)', background: 'var(--gold-soft)', color: 'var(--gold)' }}
-          >
-            <Download size={13} /> PDF
-          </button>
-        </div>
-      </div>
+      <SiteHeader
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition-all hover:bg-slate-50"
+            >
+              <Share2 size={13} /> Share
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-all"
+              style={{ border: '1px solid var(--gold)', background: 'var(--gold-soft)', color: 'var(--gold)' }}
+            >
+              <Download size={13} /> PDF
+            </button>
+          </div>
+        }
+      />
 
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
 
@@ -363,7 +357,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                 <RadarChart data={radarData}>
                   <PolarGrid stroke="rgba(15,23,42,0.08)" />
                   <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 11 }} />
-                  <Radar dataKey="value" stroke="#4F46E5" fill="#4F46E5" fillOpacity={0.08} strokeWidth={1.5} />
+                  <Radar dataKey="value" stroke="#3448B0" fill="#3448B0" fillOpacity={0.08} strokeWidth={1.5} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
@@ -434,7 +428,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
         </div>
 
         {/* Tabs — sticky frosted */}
-        <div className="sticky top-14 z-30 -mx-6 px-6 overflow-x-auto bg-white/95 backdrop-blur-sm border-b border-slate-200">
+        <div className="sticky top-[68px] z-30 -mx-6 px-6 overflow-x-auto bg-white/95 backdrop-blur-sm border-b border-slate-200">
           <div className="flex gap-0">
             {tabs.map(t => (
               <button
@@ -442,8 +436,8 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                 onClick={() => setActiveTab(t.id)}
                 className="px-4 py-3 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-px flex items-center gap-1.5"
                 style={{
-                  borderBottomColor: activeTab === t.id ? '#4F46E5' : 'transparent',
-                  color: activeTab === t.id ? '#4F46E5' : 'var(--paper-4)',
+                  borderBottomColor: activeTab === t.id ? '#3448B0' : 'transparent',
+                  color: activeTab === t.id ? '#3448B0' : 'var(--paper-4)',
                 }}
               >
                 {t.label}
@@ -915,7 +909,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
             {a.roadmap?.map((week, i) => (
               <div key={i} className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--gold-soft)', border: '1px solid rgba(79,70,229,0.25)', color: 'var(--gold)' }}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--gold-soft)', border: '1px solid rgba(52,72,176,0.25)', color: 'var(--gold)' }}>
                     {i + 1}
                   </div>
                   {i < (a.roadmap?.length ?? 0) - 1 && <div className="flex-1 w-px bg-slate-200 mt-2" />}

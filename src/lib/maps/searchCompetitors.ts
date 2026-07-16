@@ -107,6 +107,7 @@ export async function searchCompetitors({
   const resultsMap = new Map<string, NearbyPlace>()
   const nameCoordinateMap = new Map<string, string>()
   let rawGoogleResults = 0
+  let dataError: 'REQUEST_DENIED' | 'OVER_QUERY_LIMIT' | 'UNKNOWN' | undefined
 
   for (const keyword of keywords) {
     for (const placeType of placeTypes) {
@@ -128,6 +129,9 @@ export async function searchCompetitors({
       const json = await response.json()
       if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS') {
         console.error('[searchCompetitors] Places API error:', json.status, json.error_message ?? '', `(keyword: ${keyword}, type: ${placeType})`)
+        dataError = json.status === 'REQUEST_DENIED' ? 'REQUEST_DENIED'
+          : json.status === 'OVER_QUERY_LIMIT' ? 'OVER_QUERY_LIMIT'
+          : (dataError ?? 'UNKNOWN')
         if (json.status === 'REQUEST_DENIED') {
           console.error(
             '[searchCompetitors] REQUEST_DENIED — checklist:\n' +
@@ -201,6 +205,7 @@ export async function searchCompetitors({
     source: 'google',
     total_found: competitors.length,
     competitors,
+    ...(dataError && competitors.length === 0 ? { data_error: dataError } : {}),
     avg_rating: avgOrNull(competitors.map(item => item.rating)),
     avg_price_level: avgOrNull(competitors.map(item => item.price_level)),
     competitor_density: calculateDensity(competitors.length, radiusKm),

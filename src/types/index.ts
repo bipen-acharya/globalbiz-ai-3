@@ -168,6 +168,9 @@ export interface NearbyCompetitorData {
   shopping_center_anchors?: string[]
   food_hotspots?: string[]
   local_retail_clusters?: string[]
+  /** Set when the Places API rejected the request (e.g. REQUEST_DENIED — billing
+   *  not enabled). Lets the UI distinguish "no competitors" from "no data". */
+  data_error?: 'REQUEST_DENIED' | 'OVER_QUERY_LIMIT' | 'UNKNOWN'
 }
 
 export interface CompetitorThreat {

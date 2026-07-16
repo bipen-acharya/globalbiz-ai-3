@@ -7,8 +7,8 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { ArrowUpRight, CalendarDays, Clock, Newspaper } from 'lucide-react'
+import { SiteHeader } from '@/components/SiteHeader'
 import { NEWS_CATEGORIES, type NewsArticle, type NewsCategory } from '@/services/newsService'
 import type { BusinessEvent } from '@/data/australia-events'
 
@@ -41,7 +41,7 @@ function ArticleCard({ article }: { article: NewsArticle }) {
       target="_blank"
       rel="noopener noreferrer"
       className="group flex flex-col rounded-2xl p-5 transition-all hover:-translate-y-0.5"
-      style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}
+      style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}
     >
       <div className="mb-2 flex items-center gap-2 text-xs" style={{ color: 'var(--paper-4)' }}>
         <span className="font-semibold" style={{ color: 'var(--gold)' }}>{article.source}</span>
@@ -76,7 +76,7 @@ function EventCard({ event }: { event: BusinessEvent }) {
       target="_blank"
       rel="noopener noreferrer"
       className="group flex flex-col rounded-2xl p-5 transition-all hover:-translate-y-0.5"
-      style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}
+      style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}
     >
       <div className="mb-2 flex items-center gap-2 text-xs" style={{ color: 'var(--paper-4)' }}>
         <span className="rounded-full px-2 py-0.5 font-medium"
@@ -122,23 +122,13 @@ export function NewsFeed({ articles, events, generatedAt }: NewsFeedProps) {
   }, [articles])
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--ink-1)', color: 'var(--paper)' }}>
-      {/* Nav */}
-      <nav className="nav-blur sticky top-0 z-40 flex items-center justify-between px-6 py-3.5">
-        <Link href="/" className="font-display text-base font-bold" style={{ color: 'var(--paper)' }}>
-          GlobalBiz <span style={{ color: 'var(--gold)' }}>AI</span>
-        </Link>
-        <div className="flex items-center gap-2">
-          <Link href="/explore" className="btn btn-ghost text-sm">Explore</Link>
-          <Link href="/analyze" className="btn btn-gold text-sm">Generate report</Link>
-        </div>
-      </nav>
+    <div className="min-h-screen" style={{ background: 'var(--ink-0)', color: 'var(--paper)' }}>
+      <SiteHeader active="/news" />
 
       <main className="mx-auto max-w-5xl px-4 py-10">
         {/* Header */}
         <header className="mb-8">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-wide"
-            style={{ background: 'var(--gold-soft)', color: 'var(--gold)', border: '1px solid rgba(79,70,229,0.18)' }}>
+          <div className="eyebrow mb-3">
             Updated hourly
           </div>
           <h1 className="font-display text-3xl font-bold" style={{ color: 'var(--paper)' }}>
@@ -160,7 +150,7 @@ export function NewsFeed({ articles, events, generatedAt }: NewsFeedProps) {
             className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all"
             style={tab === 'news'
               ? { background: 'var(--gold)', color: '#fff' }
-              : { background: 'var(--ink-0)', color: 'var(--paper-2)', border: '1px solid var(--line-2)' }}
+              : { background: 'var(--ink-1)', color: 'var(--paper-2)', border: '1px solid var(--line-2)' }}
           >
             <Newspaper size={14} /> News
           </button>
@@ -170,7 +160,7 @@ export function NewsFeed({ articles, events, generatedAt }: NewsFeedProps) {
             className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all"
             style={tab === 'events'
               ? { background: 'var(--gold)', color: '#fff' }
-              : { background: 'var(--ink-0)', color: 'var(--paper-2)', border: '1px solid var(--line-2)' }}
+              : { background: 'var(--ink-1)', color: 'var(--paper-2)', border: '1px solid var(--line-2)' }}
           >
             <CalendarDays size={14} /> Events
           </button>
@@ -191,8 +181,8 @@ export function NewsFeed({ articles, events, generatedAt }: NewsFeedProps) {
                     onClick={() => setCategory(c.id)}
                     className="rounded-full px-3 py-1.5 text-xs font-medium transition-all"
                     style={active
-                      ? { background: 'var(--gold-soft)', color: 'var(--gold)', border: '1px solid rgba(79,70,229,0.3)' }
-                      : { background: 'var(--ink-0)', color: 'var(--paper-3)', border: '1px solid var(--line-2)' }}
+                      ? { background: 'var(--gold-soft)', color: 'var(--gold)', border: '1px solid rgba(52,72,176,0.3)' }
+                      : { background: 'var(--ink-1)', color: 'var(--paper-3)', border: '1px solid var(--line-2)' }}
                   >
                     {c.label} <span style={{ opacity: 0.6 }}>{count}</span>
                   </button>
@@ -207,7 +197,7 @@ export function NewsFeed({ articles, events, generatedAt }: NewsFeedProps) {
               </div>
             ) : (
               <div className="rounded-2xl p-10 text-center"
-                style={{ background: 'var(--ink-0)', border: '1px solid var(--line)' }}>
+                style={{ background: 'var(--ink-1)', border: '1px solid var(--line)' }}>
                 <p className="text-sm" style={{ color: 'var(--paper-3)' }}>
                   {articles.length === 0
                     ? 'News feeds are being fetched — check back in a few minutes.'

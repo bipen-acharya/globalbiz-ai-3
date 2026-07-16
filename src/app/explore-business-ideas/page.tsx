@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { SiteHeader } from '@/components/SiteHeader'
 import {
-  ArrowLeft, ArrowUpRight, Search, MapPin, DollarSign, Clock,
+  ArrowUpRight, Search, MapPin, DollarSign, Clock,
   Users, Sparkles, TrendingUp,
 } from 'lucide-react'
 
@@ -71,18 +72,7 @@ export default function ExploreBusinessIdeasPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--ink-0)', color: 'var(--paper)' }}>
-      <nav className="nav-blur sticky top-0 z-50">
-        <div className="container-wide flex items-center justify-between py-5">
-          <Link href="/" className="flex items-center gap-2 text-sm" style={{ color: 'var(--paper-3)' }}>
-            <ArrowLeft size={16} /> Home
-          </Link>
-          <Link href="/" className="flex items-center gap-3">
-            <span className="block h-2 w-2 rounded-full" style={{ background: 'var(--gold)' }} />
-            <span className="font-display text-lg">GlobalBiz <span style={{ color: "var(--gold)" }}>AI</span></span>
-          </Link>
-          <Link href="/analyze" className="btn btn-gold">Start <ArrowUpRight size={16} /></Link>
-        </div>
-      </nav>
+      <SiteHeader />
 
       <section className="relative spotlight">
         <div className="container-text pt-20 pb-12 text-center">

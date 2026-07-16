@@ -7,6 +7,7 @@ import {
   ArrowUpRight, MapPin, BarChart3, TrendingUp,
   ChevronRight, FileText, Sparkles,
 } from 'lucide-react'
+import { SiteHeader } from '@/components/SiteHeader'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LANDING — editorial dark luxury, serif-led, single accent.
@@ -17,6 +18,14 @@ const STATS = [
   { value: 'AUD',    label: 'Calibrated currency' },
   { value: 'Real',   label: 'Competitor data' },
   { value: '3 min',  label: 'To a full report' },
+]
+
+const TRUST_POINTS = [
+  'Real Google Maps competitor data',
+  'Suburb-precise scoring',
+  'Australian-calibrated',
+  'No account required',
+  'Free during beta',
 ]
 
 const CAPABILITIES = [
@@ -67,23 +76,7 @@ export default function LandingPage() {
   return (
     <div className="relative min-h-screen overflow-hidden" style={{ background: 'var(--ink-0)', color: 'var(--paper)' }}>
       {/* ── Nav ── */}
-      <nav className="nav-blur sticky top-0 z-50">
-        <div className="container-wide flex items-center justify-between py-5">
-          <Link href="/" className="flex items-center gap-3 group">
-            <span className="block h-2 w-2 rounded-full" style={{ background: 'var(--gold)' }} />
-            <span className="font-display text-xl tracking-tight">GlobalBiz <span style={{ color: "var(--gold)" }}>AI</span></span>
-          </Link>
-          <div className="hidden items-center gap-7 md:flex">
-            <Link href="/explore" className="nav-link">Explore suburbs</Link>
-            <Link href="/news" className="nav-link">News</Link>
-            <Link href="/market-intelligence" className="nav-link">Market data</Link>
-            <Link href="/how-it-works" className="nav-link">How it works</Link>
-          </div>
-          <Link href="/analyze" className="btn btn-primary">
-            Begin <ArrowUpRight size={16} />
-          </Link>
-        </div>
-      </nav>
+      <SiteHeader />
 
       {/* ── Hero ── */}
       <section className="relative spotlight">
@@ -133,6 +126,18 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── Trust strip ── */}
+      <section aria-label="Why founders trust GlobalBiz AI" className="border-y" style={{ background: 'var(--ink-1)', borderColor: 'var(--line)' }}>
+        <div className="container-wide flex flex-wrap items-center justify-center gap-x-10 gap-y-3 py-6">
+          {TRUST_POINTS.map(point => (
+            <span key={point} className="inline-flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--paper-2)' }}>
+              <span className="text-base font-bold" style={{ color: 'var(--green)' }}>✓</span>
+              {point}
+            </span>
+          ))}
         </div>
       </section>
 

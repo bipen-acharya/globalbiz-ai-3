@@ -11,6 +11,7 @@ import {
   MapPin,
   ShoppingBag,
 } from 'lucide-react'
+import { SiteHeader } from '@/components/SiteHeader'
 import { AU_STATES } from '@/lib/australia-suburbs'
 import { BUSINESS_TYPES } from '@/lib/australia-business-rules'
 import { AddressPicker } from '@/components/AddressPicker'
@@ -181,7 +182,7 @@ function LoadingOverlay({ visible }: { visible: boolean }) {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
-      <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--ink-0)', border: '1px solid var(--line-2)', boxShadow: 'var(--shadow-lg)' }}>
+      <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--ink-1)', border: '1px solid var(--line-2)', boxShadow: 'var(--shadow-lg)' }}>
         <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4" style={{ borderColor: 'var(--gold-soft)', borderTopColor: 'var(--gold)' }} />
         <div className="font-display text-base font-semibold" style={{ color: 'var(--paper)' }}>{LOADING_MESSAGES[msgIdx]}</div>
         <p className="mt-2 text-sm" style={{ color: 'var(--paper-3)' }}>Building your turnaround report…</p>
@@ -234,7 +235,7 @@ function LocationTypeSelector({
             className="flex flex-col items-center gap-2 rounded-xl px-4 py-4 text-center transition-all"
             style={{
               border: `1px solid ${active ? 'var(--gold)' : 'var(--line-2)'}`,
-              background: active ? 'var(--gold-soft)' : 'var(--ink-0)',
+              background: active ? 'var(--gold-soft)' : 'var(--ink-1)',
               boxShadow: active ? '0 0 0 3px var(--gold-soft)' : 'none',
             }}
           >
@@ -461,37 +462,32 @@ export default function ExistingPage() {
     <>
       <LoadingOverlay visible={loading} />
 
-      <div className="min-h-screen" style={{ background: 'var(--ink-1)', color: 'var(--paper)' }}>
-        {/* Nav */}
-        <nav className="sticky top-0 z-40 flex items-center justify-between px-6 py-3.5 backdrop-blur-md nav-blur">
-          <Link href="/" className="flex items-center gap-2 transition-colors" style={{ color: 'var(--paper-3)' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--paper)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--paper-3)')}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="font-display text-base font-bold" style={{ color: 'var(--paper)' }}>
-              GlobalBiz <span style={{ color: 'var(--gold)' }}>AI</span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <StepDots step={step} />
-            {step === 2 && (
-              <button type="button" onClick={() => setStep(1)}
-                className="flex items-center gap-1.5 text-sm transition-colors"
-                style={{ color: 'var(--paper-3)' }}>
-                <ArrowLeft className="h-4 w-4" /> Back
-              </button>
-            )}
-          </div>
-        </nav>
+      <div className="min-h-screen" style={{ background: 'var(--ink-0)', color: 'var(--paper)' }}>
+        <SiteHeader />
 
         <div className="mx-auto max-w-2xl px-4 py-10">
+
+          {/* Consistent back affordance + step indicator */}
+          <div className="mb-6 flex items-center justify-between">
+            {step === 1 ? (
+              <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--paper-3)' }}>
+                <ArrowLeft className="h-4 w-4" /> Back to home
+              </Link>
+            ) : (
+              <button type="button" onClick={() => setStep(1)}
+                className="inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
+                style={{ color: 'var(--paper-3)' }}>
+                <ArrowLeft className="h-4 w-4" /> Back to step 1
+              </button>
+            )}
+            <StepDots step={step} />
+          </div>
 
           {/* ── STEP 1 ── */}
           {step === 1 && (
             <div className="fade-up space-y-5">
               <div>
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-wide" style={{ background: 'var(--gold-soft)', color: 'var(--gold)', border: '1px solid rgba(79,70,229,0.18)' }}>
+                <div className="eyebrow mb-3">
                   Step 1 of 2 · About your business
                 </div>
                 <h1 className="font-display text-3xl font-bold" style={{ color: 'var(--paper)' }}>
@@ -503,7 +499,7 @@ export default function ExistingPage() {
               </div>
 
               {/* Business type selector — FIRST question */}
-              <div className="rounded-2xl p-5" style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+              <div className="rounded-2xl p-5" style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
                 <h2 className="font-display text-sm font-semibold mb-4" style={{ color: 'var(--paper)' }}>
                   Is your business Physical, Online, or Both? *
                 </h2>
@@ -511,12 +507,12 @@ export default function ExistingPage() {
               </div>
 
               {/* Location section — conditional on type */}
-              <div className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+              <div className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
                 <h2 className="font-display text-sm font-semibold" style={{ color: 'var(--paper)' }}>Location &amp; online presence</h2>
 
                 {/* Physical / Both — Google Maps address picker */}
                 {needsAddress && (
-                  <div className="space-y-4 rounded-xl p-4" style={{ background: 'var(--ink-1)', border: '1px solid var(--line)' }}>
+                  <div className="space-y-4 rounded-xl p-4" style={{ background: 'var(--ink-0)', border: '1px solid var(--line)' }}>
                     <Field label="Business address *" error={errors.place}>
                       <AddressPicker
                         onSelect={p => {
@@ -553,7 +549,7 @@ export default function ExistingPage() {
 
                 {/* Online only — country + state */}
                 {isOnline && (
-                  <div className="space-y-4 rounded-xl p-4" style={{ background: 'var(--ink-1)', border: '1px solid var(--line)' }}>
+                  <div className="space-y-4 rounded-xl p-4" style={{ background: 'var(--ink-0)', border: '1px solid var(--line)' }}>
                     <Field label="Country *">
                       <SelectField
                         options={COUNTRIES}
@@ -616,7 +612,7 @@ export default function ExistingPage() {
               </div>
 
               {/* Business details */}
-              <div className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+              <div className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
                 <h2 className="font-display text-sm font-semibold" style={{ color: 'var(--paper)' }}>Business details</h2>
 
                 <Field label="Business name *" error={errors.business_name}>
@@ -704,7 +700,7 @@ export default function ExistingPage() {
           {step === 2 && (
             <div className="fade-up space-y-5">
               <div>
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-wide" style={{ background: 'var(--gold-soft)', color: 'var(--gold)', border: '1px solid rgba(79,70,229,0.18)' }}>
+                <div className="eyebrow mb-3">
                   Step 2 of 2 · What&apos;s not working
                 </div>
                 <h1 className="font-display text-3xl font-bold" style={{ color: 'var(--paper)' }}>
@@ -715,7 +711,7 @@ export default function ExistingPage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl p-5 space-y-6" style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+              <div className="rounded-2xl p-5 space-y-6" style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
 
                 {/* Problems multi-select */}
                 <div>
@@ -730,7 +726,7 @@ export default function ExistingPage() {
                           className="flex cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition-all"
                           style={{
                             border: `1px solid ${checked ? 'var(--gold)' : 'var(--line-2)'}`,
-                            background: checked ? 'var(--gold-soft)' : 'var(--ink-0)',
+                            background: checked ? 'var(--gold-soft)' : 'var(--ink-1)',
                           }}
                         >
                           <input
@@ -783,7 +779,7 @@ export default function ExistingPage() {
                           className="flex cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition-all"
                           style={{
                             border: `1px solid ${active ? 'var(--gold)' : 'var(--line-2)'}`,
-                            background: active ? 'var(--gold-soft)' : 'var(--ink-0)',
+                            background: active ? 'var(--gold-soft)' : 'var(--ink-1)',
                           }}
                         >
                           <input
@@ -824,7 +820,7 @@ export default function ExistingPage() {
               </div>
 
               {/* Step 1 summary */}
-              <div className="rounded-2xl p-4" style={{ background: 'var(--ink-1)', border: '1px solid var(--line)' }}>
+              <div className="rounded-2xl p-4" style={{ background: 'var(--ink-0)', border: '1px solid var(--line)' }}>
                 <div className="mb-1.5 text-xs uppercase tracking-[0.18em]" style={{ color: 'var(--paper-4)' }}>Analysing</div>
                 <div className="font-display font-semibold" style={{ color: 'var(--paper)' }}>{form.business_name || form.business_type}</div>
                 <div className="mt-1 text-sm" style={{ color: 'var(--paper-3)' }}>

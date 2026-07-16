@@ -5,6 +5,7 @@
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { SiteHeader } from '@/components/SiteHeader'
 import {
   STATE_PROFILES,
   SURVIVAL_RATES,
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
 function OutlookBadge({ outlook }: { outlook: 'strong' | 'stable' | 'challenged' }) {
   const styles = {
     strong: { background: 'rgba(5,150,105,0.08)', color: 'var(--ok)', border: '1px solid rgba(5,150,105,0.25)' },
-    stable: { background: 'var(--gold-soft)', color: 'var(--gold)', border: '1px solid rgba(79,70,229,0.2)' },
+    stable: { background: 'var(--gold-soft)', color: 'var(--gold)', border: '1px solid rgba(52,72,176,0.2)' },
     challenged: { background: 'rgba(217,119,6,0.08)', color: 'var(--warn)', border: '1px solid rgba(217,119,6,0.25)' },
   }
   return (
@@ -62,23 +63,13 @@ function SectionHeading({ eyebrow, title, sub }: { eyebrow: string; title: strin
 
 export default function MarketIntelligencePage() {
   return (
-    <div className="min-h-screen" style={{ background: 'var(--ink-1)', color: 'var(--paper)' }}>
-      {/* Nav */}
-      <nav className="nav-blur sticky top-0 z-40 flex items-center justify-between px-6 py-3.5">
-        <Link href="/" className="font-display text-base font-bold" style={{ color: 'var(--paper)' }}>
-          GlobalBiz <span style={{ color: 'var(--gold)' }}>AI</span>
-        </Link>
-        <div className="flex items-center gap-2">
-          <Link href="/news" className="btn btn-ghost text-sm">News</Link>
-          <Link href="/analyze" className="btn btn-gold text-sm">Generate report</Link>
-        </div>
-      </nav>
+    <div className="min-h-screen" style={{ background: 'var(--ink-0)', color: 'var(--paper)' }}>
+      <SiteHeader active="/market-intelligence" />
 
       <main className="mx-auto max-w-5xl px-4 py-10 space-y-16">
         {/* Header */}
         <header>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-wide"
-            style={{ background: 'var(--gold-soft)', color: 'var(--gold)', border: '1px solid rgba(79,70,229,0.18)' }}>
+          <div className="eyebrow mb-3">
             ABS-derived data · Reviewed quarterly
           </div>
           <h1 className="font-display text-3xl font-bold sm:text-4xl" style={{ color: 'var(--paper)' }}>
@@ -100,7 +91,7 @@ export default function MarketIntelligencePage() {
           <div className="grid gap-4 sm:grid-cols-2">
             {STATE_PROFILES.map(s => (
               <div key={s.abbrev} className="rounded-2xl p-5"
-                style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+                style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
                 <div className="mb-2 flex items-center justify-between">
                   <h3 className="font-display text-base font-bold" style={{ color: 'var(--paper)' }}>{s.state}</h3>
                   <span className="rounded-md px-2 py-0.5 text-xs font-bold"
@@ -129,7 +120,7 @@ export default function MarketIntelligencePage() {
             sub="Share of new businesses still operating after 1 and 4 years, by industry."
           />
           <div className="overflow-x-auto rounded-2xl"
-            style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+            style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
             <table className="w-full text-sm" style={{ minWidth: 560 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--line-2)' }}>
@@ -170,7 +161,7 @@ export default function MarketIntelligencePage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {RISK_REWARD.map(r => (
               <div key={r.industry} className="rounded-2xl p-5"
-                style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+                style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
                 <h3 className="mb-2 text-[0.95rem] font-semibold leading-snug" style={{ color: 'var(--paper)' }}>{r.industry}</h3>
                 <div className="mb-3 flex items-center gap-3 text-xs" style={{ color: 'var(--paper-4)' }}>
                   <span className="flex items-center gap-1.5">Risk <RiskBadge level={r.risk} /></span>
@@ -190,7 +181,7 @@ export default function MarketIntelligencePage() {
           />
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl p-5"
-              style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+              style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
               <h3 className="mb-3 text-sm font-bold" style={{ color: 'var(--ok)' }}>Growing now</h3>
               <ul className="space-y-2">
                 {GROWING_INDUSTRIES.map(item => (
@@ -201,7 +192,7 @@ export default function MarketIntelligencePage() {
               </ul>
             </div>
             <div className="rounded-2xl p-5"
-              style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+              style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
               <h3 className="mb-3 text-sm font-bold" style={{ color: 'var(--danger)' }}>Structurally declining</h3>
               <ul className="space-y-2">
                 {DECLINING_INDUSTRIES.map(item => (
@@ -216,7 +207,7 @@ export default function MarketIntelligencePage() {
 
         {/* CTA + source note */}
         <section className="rounded-2xl p-8 text-center"
-          style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+          style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
           <h2 className="font-display text-xl font-bold" style={{ color: 'var(--paper)' }}>
             Ready to test a specific idea in a specific suburb?
           </h2>

@@ -11,34 +11,40 @@ const config: Config = {
         mono:    ['ui-monospace', 'monospace'],
       },
       colors: {
-        // ink scale (was dark; now light surfaces)
+        // ink scale — cream canvas, white cards
         ink: {
-          0: '#FFFFFF',
-          1: '#FAFAF7',
+          0: '#F7F6F0',
+          1: '#FFFFFF',
           2: '#FFFFFF',
-          3: '#F4F4F1',
-          4: '#ECECE6',
+          3: '#EFEEE6',
+          4: '#E8E6DB',
         },
-        // paper (was off-white; now dark text)
+        // paper — deep navy text
         paper: {
-          DEFAULT: '#0A0A0A',
-          2: '#3A3A3A',
-          3: '#6B6B6B',
-          4: '#9A9A9A',
+          DEFAULT: '#1B2559',
+          2: '#414A6E',
+          3: '#636A87',
+          4: '#9BA0B6',
         },
-        // accent — indigo (was gold)
+        // accent — royal blue action
         gold: {
-          DEFAULT: '#4F46E5',
-          2: '#6366F1',
+          DEFAULT: '#3448B0',
+          2: '#4557C7',
         },
-        line: 'rgba(15,15,15,0.06)',
-        'line-2': 'rgba(15,15,15,0.10)',
-        'line-3': 'rgba(15,15,15,0.18)',
+        // brand green — highlights, eyebrows, ticks
+        green: {
+          DEFAULT: '#17976C',
+          2: '#12805B',
+          soft: '#DFF2EA',
+        },
+        line: 'rgba(27,37,89,0.08)',
+        'line-2': 'rgba(27,37,89,0.13)',
+        'line-3': 'rgba(27,37,89,0.22)',
       },
       boxShadow: {
-        soft: '0 1px 2px rgba(15, 15, 15, 0.04)',
-        elevated: '0 4px 16px rgba(15, 15, 15, 0.06)',
-        floating: '0 16px 48px -12px rgba(15, 15, 15, 0.10)',
+        soft: '0 1px 2px rgba(27, 37, 89, 0.05)',
+        elevated: '0 4px 16px rgba(27, 37, 89, 0.07)',
+        floating: '0 16px 48px -12px rgba(27, 37, 89, 0.12)',
       },
       animation: {
         'fade-up':  'fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both',

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, CheckCircle, Compass, Newspaper } from 'lucide-react'
+import { SiteHeader } from '@/components/SiteHeader'
 
 const WAITLIST_KEY = 'globalbiz_waitlist_emails'
 
@@ -28,19 +29,12 @@ export default function ComingSoonPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--ink-1)', color: 'var(--paper)' }}>
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 nav-blur">
-        <Link href="/" className="font-display text-base font-bold" style={{ color: 'var(--paper)' }}>
-          GlobalBiz <span style={{ color: 'var(--gold)' }}>AI</span>
-        </Link>
-        <Link href="/" className="btn btn-ghost text-sm">Home</Link>
-      </nav>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--ink-0)', color: 'var(--paper)' }}>
+      <SiteHeader />
 
       <main className="flex flex-1 items-center justify-center px-4 py-16">
         <div className="w-full max-w-lg text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-wide"
-            style={{ background: 'var(--gold-soft)', color: 'var(--gold)', border: '1px solid rgba(79,70,229,0.18)' }}>
+          <div className="eyebrow mb-4">
             Free beta complete
           </div>
 
@@ -92,13 +86,13 @@ export default function ComingSoonPage() {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Link href="/explore" className="group rounded-2xl p-4 text-left transition-all"
-                style={{ background: 'var(--ink-0)', border: '1px solid var(--line)' }}>
+                style={{ background: 'var(--ink-1)', border: '1px solid var(--line)' }}>
                 <Compass size={18} style={{ color: 'var(--gold)' }} />
                 <div className="mt-2 text-sm font-semibold" style={{ color: 'var(--paper)' }}>Explore suburbs</div>
                 <div className="mt-0.5 text-xs" style={{ color: 'var(--paper-3)' }}>Live competitor data for any suburb</div>
               </Link>
               <Link href="/news" className="group rounded-2xl p-4 text-left transition-all"
-                style={{ background: 'var(--ink-0)', border: '1px solid var(--line)' }}>
+                style={{ background: 'var(--ink-1)', border: '1px solid var(--line)' }}>
                 <Newspaper size={18} style={{ color: 'var(--gold)' }} />
                 <div className="mt-2 text-sm font-semibold" style={{ color: 'var(--paper)' }}>Business news</div>
                 <div className="mt-0.5 text-xs" style={{ color: 'var(--paper-3)' }}>Australian founder news, updated hourly</div>

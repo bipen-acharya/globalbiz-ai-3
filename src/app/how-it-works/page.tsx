@@ -6,6 +6,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight, Database, Cpu, FileText, PenLine } from 'lucide-react'
+import { SiteHeader } from '@/components/SiteHeader'
 
 export const metadata: Metadata = {
   title: 'How It Works — GlobalBiz AI',
@@ -76,7 +77,7 @@ const BADGES = [
     label: 'Rules based',
     color: 'var(--gold)',
     bg: 'var(--gold-soft)',
-    border: 'rgba(79,70,229,0.25)',
+    border: 'rgba(52,72,176,0.25)',
     meaning: 'Derived from documented Australian business rules — licensing requirements, council permit patterns, ABS survival data.',
   },
   {
@@ -98,7 +99,7 @@ const FRESHNESS = [
 function Card({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded-2xl p-5"
-      style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+      style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
       {children}
     </div>
   )
@@ -117,20 +118,13 @@ function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) 
 
 export default function HowItWorksPage() {
   return (
-    <div className="min-h-screen" style={{ background: 'var(--ink-1)', color: 'var(--paper)' }}>
-      {/* Nav */}
-      <nav className="nav-blur sticky top-0 z-40 flex items-center justify-between px-6 py-3.5">
-        <Link href="/" className="font-display text-base font-bold" style={{ color: 'var(--paper)' }}>
-          GlobalBiz <span style={{ color: 'var(--gold)' }}>AI</span>
-        </Link>
-        <Link href="/analyze" className="btn btn-gold text-sm">Generate report</Link>
-      </nav>
+    <div className="min-h-screen" style={{ background: 'var(--ink-0)', color: 'var(--paper)' }}>
+      <SiteHeader active="/how-it-works" />
 
       <main className="mx-auto max-w-3xl px-4 py-10 space-y-16">
         {/* Header */}
         <header>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-wide"
-            style={{ background: 'var(--gold-soft)', color: 'var(--gold)', border: '1px solid rgba(79,70,229,0.18)' }}>
+          <div className="eyebrow mb-3">
             Full transparency
           </div>
           <h1 className="font-display text-3xl font-bold sm:text-4xl" style={{ color: 'var(--paper)' }}>
@@ -148,7 +142,7 @@ export default function HowItWorksPage() {
           <div className="space-y-3">
             {PIPELINE_STEPS.map((step, i) => (
               <div key={step.title} className="flex gap-4 rounded-2xl p-5"
-                style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+                style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
                   style={{ background: 'var(--gold-soft)', color: 'var(--gold)' }}>
                   <step.icon size={18} />
@@ -247,7 +241,7 @@ export default function HowItWorksPage() {
         <section>
           <SectionHeading eyebrow="Freshness" title="How current each source is" />
           <div className="overflow-hidden rounded-2xl"
-            style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+            style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
             {FRESHNESS.map((f, i) => (
               <div key={f.source} className="flex items-center justify-between gap-4 px-5 py-3.5"
                 style={{ borderBottom: i < FRESHNESS.length - 1 ? '1px solid var(--line)' : 'none' }}>
@@ -273,7 +267,7 @@ export default function HowItWorksPage() {
 
         {/* CTA */}
         <section className="rounded-2xl p-8 text-center"
-          style={{ background: 'var(--ink-0)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+          style={{ background: 'var(--ink-1)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
           <h2 className="font-display text-xl font-bold" style={{ color: 'var(--paper)' }}>
             See it on your own idea
           </h2>

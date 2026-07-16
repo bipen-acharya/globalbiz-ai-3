@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
-  ArrowLeft, ArrowUpRight, ChevronDown, MapPin, Search, Star, X,
+  ArrowLeft, ArrowUpRight, ChevronDown, MapPin, Star, X,
 } from 'lucide-react'
+import { SiteHeader, BackLink } from '@/components/SiteHeader'
 import { AU_STATES, searchSuburbs } from '@/lib/australia-suburbs'
 import { BUSINESS_TYPES } from '@/lib/australia-business-rules'
 import { CompetitorMap } from '@/components/report/CompetitorMap'
@@ -111,32 +112,17 @@ export default function ExplorePage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--ink-1)' }}>
-      {/* ── Nav ── */}
-      <nav className="nav-blur sticky top-0 z-50">
-        <div className="container-wide flex items-center justify-between py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="block h-2 w-2 rounded-full" style={{ background: 'var(--gold)' }} />
-            <span className="font-semibold tracking-tight">GlobalBiz <span style={{ color: 'var(--gold)' }}>AI</span></span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/" className="btn btn-ghost" style={{ padding: '8px 16px', fontSize: 13 }}>
-              <ArrowLeft size={14} /> Home
-            </Link>
-            <Link href={analyzeUrl()} className="btn btn-gold" style={{ padding: '8px 18px', fontSize: 13 }}>
-              Generate report <ArrowUpRight size={14} />
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen" style={{ background: 'var(--ink-0)' }}>
+      <SiteHeader active="/explore" />
 
       <main className="mx-auto w-full max-w-2xl px-6 py-12">
         {step === 'form' && (
           <div className="anim-fade-up">
+            <BackLink href="/" label="Back to home" />
             {/* Header */}
             <div className="mb-8">
-              <div className="tag tag-gold mb-4">
-                <Search size={11} /> Free competitor lookup
+              <div className="eyebrow mb-4">
+                Free competitor lookup
               </div>
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--paper)' }}>
                 Find businesses in your area
@@ -248,13 +234,26 @@ export default function ExplorePage() {
                   {draft.radiusKm}km radius · {draft.suburb?.state}
                 </p>
               </div>
-              <div className="shrink-0 rounded-xl px-5 py-3 text-center" style={{ background: 'var(--gold-soft)', border: '1px solid rgba(79,70,229,0.20)' }}>
+              <div className="shrink-0 rounded-xl px-5 py-3 text-center" style={{ background: 'var(--gold-soft)', border: '1px solid rgba(52,72,176,0.20)' }}>
                 <div className="text-2xl font-bold" style={{ color: 'var(--gold)' }}>{data.total_found}</div>
                 <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--gold)' }}>
                   {data.total_found === 1 ? 'business' : 'businesses'}
                 </div>
               </div>
             </div>
+
+            {/* Data availability warning — Google rejected the request */}
+            {data.data_error && (
+              <div className="rounded-xl px-4 py-3 text-sm leading-relaxed"
+                style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.3)', color: '#92400E' }}>
+                <strong>Live competitor data is temporarily unavailable.</strong>{' '}
+                {data.data_error === 'REQUEST_DENIED'
+                  ? 'Our maps data provider rejected the request — the team has been notified. Results below may be incomplete.'
+                  : data.data_error === 'OVER_QUERY_LIMIT'
+                  ? 'We\'ve hit today\'s maps data quota. Please try again shortly.'
+                  : 'The maps data service returned an error. Please try again shortly.'}
+              </div>
+            )}
 
             {/* Compact stats */}
             <div className="grid grid-cols-4 gap-2">
@@ -264,10 +263,12 @@ export default function ExplorePage() {
               <Stat label="Weak"       value={String(data.weak_count ?? 0)} accent="ok" />
             </div>
 
-            <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm" style={{ borderColor: 'var(--line-2)', background: 'var(--ink-2)', color: 'var(--paper-2)' }}>
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--gold)' }} />
-              {densityLabel(data.competitor_density)}
-            </div>
+            {!data.data_error && (
+              <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm" style={{ borderColor: 'var(--line-2)', background: 'var(--ink-2)', color: 'var(--paper-2)' }}>
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--gold)' }} />
+                {densityLabel(data.competitor_density)}
+              </div>
+            )}
 
             {draft.suburb && (
               <CompetitorMap
